@@ -1,0 +1,10 @@
+# SOMENTE desenvolvimento local. Senhas abaixo não valem para nenhum outro ambiente.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/aurora
+    username: aurora_app
+    password: aurora_app_dev
+  flyway:
+    url: jdbc:postgresql://localhost:5432/aurora
+    user: aurora_migrator
+    password: aurora_migrator_dev

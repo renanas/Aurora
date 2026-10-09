@@ -1,0 +1,17 @@
+# Somente para desenvolvimento local.
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: aurora-db
+    environment:
+      POSTGRES_DB: aurora
+      POSTGRES_USER: aurora_migrator        # dono do schema (roda o Flyway)
+      POSTGRES_PASSWORD: aurora_migrator_dev
+    ports:
+      - "127.0.0.1:5432:5432"               # exposto só para a própria máquina
+    volumes:
+      - aurora-db-data:/var/lib/postgresql/data
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+
+volumes:
+  aurora-db-data:

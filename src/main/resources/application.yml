@@ -1,0 +1,37 @@
+# Conexão com o banco NÃO fica aqui.
+#  - desenvolvimento: application-dev.yml (perfil "dev")
+#  - produção: variáveis de ambiente
+#      SPRING_DATASOURCE_URL / _USERNAME / _PASSWORD        (usuário da aplicação: sem DDL)
+#      SPRING_FLYWAY_URL / _USER / _PASSWORD                (usuário de migração: com DDL)
+spring:
+  application:
+    name: aurora-api
+  jpa:
+    open-in-view: false          # sem lazy loading escondido em controllers
+    hibernate:
+      ddl-auto: validate         # o schema é do Flyway; o Hibernate só confere
+  flyway:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health          # nenhum outro endpoint do Actuator
+  endpoint:
+    health:
+      show-details: never
+
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+
+logging:
+  pattern:
+    level: "%5p [%X{requestId:-}]"
+  level:
+    root: INFO
+    org.hibernate.SQL: WARN                  # nunca logar SQL
+    org.hibernate.orm.jdbc.bind: WARN        # nunca logar parâmetros (nomes, telefones)
