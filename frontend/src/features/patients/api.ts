@@ -33,11 +33,19 @@ export function usePatient(id: string | undefined) {
   })
 }
 
+// Inativar encerra o horário recorrente e alterar o valor atualiza sessões futuras:
+// por isso as mutações de paciente também invalidam recorrência e sessões.
 function useInvalidatingMutation<TVariables>(fn: (variables: TVariables) => Promise<Patient>) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: fn,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: PATIENTS }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: PATIENTS }),
+        queryClient.invalidateQueries({ queryKey: ['recurrence'] }),
+        queryClient.invalidateQueries({ queryKey: ['sessions'] }),
+      ])
+    },
   })
 }
 

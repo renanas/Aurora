@@ -12,6 +12,7 @@ import {
   useUpdatePatient,
   type PatientInput,
 } from './api'
+import RecurrenceSection from './RecurrenceSection'
 
 interface FormValues {
   name: string
@@ -96,7 +97,12 @@ export default function PatientFormPage() {
     setFormError(null)
     try {
       if (patient.active) {
-        if (!window.confirm('Inativar este paciente? Ele sai da lista de ativos, e o histórico é mantido.')) return
+        if (
+          !window.confirm(
+            'Inativar este paciente? Ele sai da lista de ativos, o horário recorrente é encerrado e o histórico é mantido.',
+          )
+        )
+          return
         await deactivatePatient.mutateAsync(patient.id)
       } else {
         await activatePatient.mutateAsync(patient.id)
@@ -207,11 +213,7 @@ export default function PatientFormPage() {
         </div>
       </form>
 
-      {isEdit && (
-        <p className="rounded-lg bg-white p-4 text-slate-500">
-          Horário recorrente e próximas sessões aparecem aqui na próxima entrega.
-        </p>
-      )}
+      {patient && <RecurrenceSection patientId={patient.id} patientActive={patient.active} />}
     </div>
   )
 }
