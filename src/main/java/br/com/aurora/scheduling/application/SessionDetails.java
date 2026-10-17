@@ -1,6 +1,7 @@
 package br.com.aurora.scheduling.application;
 
 import br.com.aurora.scheduling.domain.TherapySession;
+import br.com.aurora.shared.time.SystemConstants;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -17,6 +18,7 @@ public record SessionDetails(
         String status,
         String cancellationType,
         String paymentStatus,
+        LocalDateTime paidAt,
         BigDecimal amount,
         boolean billable,
         UUID recurrenceId,
@@ -34,6 +36,7 @@ public record SessionDetails(
                 s.getStatus().name(),
                 s.getCancellationType() == null ? null : s.getCancellationType().name(),
                 s.getPaymentStatus().name(),
+                s.getPaidAt() == null ? null : LocalDateTime.ofInstant(s.getPaidAt(), SystemConstants.ZONE),
                 s.getAmount(),
                 s.isBillable(),
                 s.getRecurrenceId(),

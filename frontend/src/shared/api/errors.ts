@@ -15,6 +15,14 @@ const MESSAGES: Record<string, string> = {
   RECURRENCE_ANCHOR_NOT_AFTER_CURRENT:
     'A nova data de início precisa ser depois da data de início do horário atual.',
   INVALID_DATE_RANGE: 'Período inválido. Escolha no máximo 100 dias.',
+  INVALID_STATUS_TRANSITION: 'Esta ação não é possível na situação atual da sessão. Atualize a tela.',
+  SESSION_NOT_BILLABLE: 'Esta sessão não é cobrada, então não recebe pagamento.',
+  OVERLAP_DETECTED: 'Este horário se sobrepõe a outra sessão.',
+  SESSION_NOT_SCHEDULED: 'Só dá para corrigir o horário de uma sessão agendada. Para as outras, reabra ou reagende.',
+  RESCHEDULE_SAME_TIME: 'Escolha um horário diferente do atual.',
+  UNDO_RESCHEDULE_NOT_ALLOWED: 'Só dá para desfazer o reagendamento enquanto a nova sessão ainda está agendada.',
+  REOPEN_NOT_ALLOWED: 'Só é possível reabrir uma sessão realizada, cancelada ou com falta.',
+  INVALID_DATE_TIME: 'Essa data não existe no calendário.',
 }
 
 export function messageFor(error: unknown): string {

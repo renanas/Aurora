@@ -6,6 +6,7 @@ import br.com.aurora.scheduling.domain.TherapySession;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -18,6 +19,9 @@ public interface TherapySessionRepository extends JpaRepository<TherapySession, 
             LocalDateTime from, LocalDateTime to);
 
     long countByRecurrenceId(UUID recurrenceId);
+
+    /** O reagendamento vigente (não cancelado) de uma sessão original, se houver. */
+    Optional<TherapySession> findFirstByRescheduledFromIdAndStatusNot(UUID originalId, SessionStatus status);
 
     @Query("""
             select s.occurrenceDate from TherapySession s

@@ -3,16 +3,32 @@ export interface FieldError {
   message: string
 }
 
+/** Uma sessão que se sobrepõe ao horário pedido (corpo do 409 OVERLAP_DETECTED). */
+export interface Conflict {
+  sessionId: string
+  patientName: string
+  startsAt: string
+  endsAt: string
+}
+
 export class ApiError extends Error {
   readonly status: number
   readonly code: string
   readonly fieldErrors: FieldError[]
+  readonly conflicts: Conflict[]
 
-  constructor(status: number, code: string, message: string, fieldErrors: FieldError[] = []) {
+  constructor(
+    status: number,
+    code: string,
+    message: string,
+    fieldErrors: FieldError[] = [],
+    conflicts: Conflict[] = [],
+  ) {
     super(message)
     this.status = status
     this.code = code
     this.fieldErrors = fieldErrors
+    this.conflicts = conflicts
   }
 }
 
@@ -52,12 +68,18 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   }
 
   if (!response.ok) {
-    const problem = (data ?? {}) as { code?: string; detail?: string; errors?: FieldError[] }
+    const problem = (data ?? {}) as {
+      code?: string
+      detail?: string
+      errors?: FieldError[]
+      conflicts?: Conflict[]
+    }
     throw new ApiError(
       response.status,
       problem.code ?? 'UNKNOWN_ERROR',
       problem.detail ?? 'Erro inesperado.',
       problem.errors ?? [],
+      problem.conflicts ?? [],
     )
   }
 

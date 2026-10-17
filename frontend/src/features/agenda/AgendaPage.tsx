@@ -1,27 +1,21 @@
-import { useMemo, useState, type ReactNode } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import {
   addDays,
   dateOf,
-  formatDateBR,
   formatDayMonth,
   minutesOfDay,
   parseDateString,
   startOfWeek,
   timeOf,
   toDateString,
-  weekdayFull,
   weekdayShort,
 } from '../../shared/lib/dates';
 import { messageFor } from '../../shared/api/errors';
-import { useSessions, type AgendaSession } from './api';
-import {
-  cancellationLabel,
-  paymentLabel,
-  statusBadgeClasses,
-  statusBlockClasses,
-  statusLabel,
-} from './status';
+import { useSessions } from './api';
+import { formatMinutes, minutesFromOffset } from './clickSlot';
+import { NewSessionPanel, SessionPanel } from './SessionPanel';
+import { statusBlockClasses, statusLabel } from './status';
 import { hourRange, layoutDay } from './weekLayout';
 
 // Mesmo valor do backend (SystemConstants): o gerador cria sessões até hoje + 8 semanas.
@@ -29,11 +23,10 @@ import { hourRange, layoutDay } from './weekLayout';
 const GENERATION_HORIZON_WEEKS = 8;
 const HOUR_PX = 64;
 
-const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-
 export default function AgendaPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [creating, setCreating] = useState<{ date: string; time: string } | null>(null);
 
   const today = useMemo(() => new Date(), []);
   const weekParam = searchParams.get('week');
@@ -58,6 +51,10 @@ export default function AgendaPage() {
 
   const selected = sessions.find((s) => s.id === selectedId) ?? null;
 
+  // "Nova sessão": hoje, se hoje está na semana mostrada; senão, o primeiro dia dela.
+  const defaultNewDate =
+    todayString >= toDateString(weekStart) && todayString <= toDateString(weekEnd) ? todayString : toDateString(weekStart);
+
   const goToWeek = (date: Date) => {
     setSelectedId(null);
     setSearchParams({ week: toDateString(startOfWeek(date)) });
@@ -73,6 +70,16 @@ export default function AgendaPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedId(null);
+              setCreating({ date: defaultNewDate, time: '09:00' });
+            }}
+            className="rounded-lg border border-indigo-600 bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700"
+          >
+            Nova sessão
+          </button>
           <button
             type="button"
             onClick={() => goToWeek(addDays(weekStart, -7))}
@@ -158,13 +165,22 @@ export default function AgendaPage() {
               return (
                 <div
                   key={dayString}
-                  className={`relative border-l border-slate-200 ${dayString === todayString ? 'bg-indigo-50/30' : ''}`}
+                  className={`relative cursor-cell border-l border-slate-200 ${dayString === todayString ? 'bg-indigo-50/30' : ''}`}
                   style={{ height: gridHeight }}
+                  onClick={(ev) => {
+                    // Só o toque em espaço vazio conta; o toque numa sessão abre o painel dela.
+                    if (ev.target !== ev.currentTarget) {
+                      return;
+                    }
+                    const offset = ev.clientY - ev.currentTarget.getBoundingClientRect().top;
+                    setSelectedId(null);
+                    setCreating({ date: dayString, time: formatMinutes(minutesFromOffset(offset, HOUR_PX, startHour)) });
+                  }}
                 >
                   {hours.map((hour, i) => (
                     <div
                       key={hour}
-                      className="absolute inset-x-0 border-t border-slate-100"
+                      className="pointer-events-none absolute inset-x-0 border-t border-slate-100"
                       style={{ top: i * HOUR_PX }}
                     />
                   ))}
@@ -207,91 +223,13 @@ export default function AgendaPage() {
         </p>
       )}
 
-      {selected && <SessionPanel session={selected} all={sessions} onClose={() => setSelectedId(null)} />}
-    </div>
-  );
-}
+      {selected && (
+        <SessionPanel key={selected.id} session={selected} all={sessions} onClose={() => setSelectedId(null)} />
+      )}
 
-function SessionPanel({
-  session,
-  all,
-  onClose,
-}: {
-  session: AgendaSession;
-  all: AgendaSession[];
-  onClose: () => void;
-}) {
-  const startDate = parseDateString(dateOf(session.startsAt));
-  const conflicts = session.overlapsWith.map((id) => all.find((s) => s.id === id));
-
-  return (
-    <>
-      <div className="fixed inset-0 z-10 bg-slate-900/30" onClick={onClose} aria-hidden="true" />
-      <aside
-        className="fixed inset-y-0 right-0 z-20 w-full max-w-sm overflow-y-auto bg-white p-5 shadow-xl"
-        aria-label="Detalhes da sessão"
-      >
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <h2 className="text-xl font-semibold text-slate-900">{session.patientName}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg px-3 py-1 text-slate-600 hover:bg-slate-100"
-            aria-label="Fechar"
-          >
-            ✕
-          </button>
-        </div>
-
-        <dl className="space-y-3 text-sm">
-          <Row label="Data">
-            {startDate ? `${weekdayFull(startDate)}, ${formatDateBR(dateOf(session.startsAt))}` : dateOf(session.startsAt)}
-          </Row>
-          <Row label="Horário">
-            {timeOf(session.startsAt)} às {timeOf(session.endsAt)} ({session.durationMinutes} min)
-          </Row>
-          <Row label="Situação">
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusBadgeClasses[session.status]}`}>
-              {statusLabel[session.status]}
-            </span>
-            {session.cancellationType && (
-              <span className="ml-2 text-slate-600">{cancellationLabel[session.cancellationType]}</span>
-            )}
-          </Row>
-          <Row label="Valor">
-            {currency.format(session.amount)}
-            {!session.billable && <span className="ml-2 text-slate-600">(não cobrada)</span>}
-          </Row>
-          {session.billable && <Row label="Pagamento">{paymentLabel[session.paymentStatus] ?? session.paymentStatus}</Row>}
-        </dl>
-
-        {conflicts.length > 0 && (
-          <div className="mt-5 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-            <p className="font-medium">Conflito de horário com:</p>
-            <ul className="mt-1 list-disc pl-5">
-              {conflicts.map((c, i) => (
-                <li key={c?.id ?? i}>{c ? `${c.patientName} (${timeOf(c.startsAt)})` : 'outra sessão'}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        <Link
-          to={`/patients/${session.patientId}`}
-          className="mt-6 inline-block rounded-lg border border-indigo-600 px-4 py-2 text-indigo-700 hover:bg-indigo-50"
-        >
-          Abrir paciente
-        </Link>
-      </aside>
-    </>
-  );
-}
-
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div>
-      <dt className="text-xs uppercase tracking-wide text-slate-500">{label}</dt>
-      <dd className="mt-0.5 text-slate-900">{children}</dd>
+      {creating && (
+        <NewSessionPanel initialDate={creating.date} initialTime={creating.time} onClose={() => setCreating(null)} />
+      )}
     </div>
   );
 }
