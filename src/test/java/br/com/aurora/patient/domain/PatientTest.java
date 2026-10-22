@@ -19,12 +19,12 @@ class PatientTest {
     }
 
     @Test
-    @DisplayName("novo paciente nasce ativo, com nome aparado, WhatsApp só com dígitos e valor com 2 casas")
+    @DisplayName("novo paciente nasce ativo, com nome aparado, WhatsApp só com dígitos e prefixo 55 e valor com 2 casas")
     void newPatientIsNormalized() {
         Patient p = maria();
 
         assertThat(p.getName()).isEqualTo("Maria Silva");
-        assertThat(p.getWhatsapp()).isEqualTo("11999998888");
+        assertThat(p.getWhatsapp()).isEqualTo("5511999998888");
         assertThat(p.getSessionPrice()).isEqualByComparingTo("180.00");
         assertThat(p.getSessionPrice().scale()).isEqualTo(2);
         assertThat(p.isActive()).isTrue();
