@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { ApiError, api } from '../../shared/api/client'
+import { ensureCsrfToken } from '../../shared/api/csrf'
 
 export interface Me {
   username: string
@@ -18,7 +19,12 @@ export async function fetchMe(): Promise<Me | null> {
   }
 }
 
-export function login(username: string, password: string): Promise<void> {
+export async function login(username: string, password: string): Promise<void> {
+  // Depois do "Sair" o cookie CSRF não existe mais; sem ele o servidor responderia 403.
+  await ensureCsrfToken(
+    () => document.cookie,
+    () => api<Me>('/auth/me'),
+  )
   return api<void>('/auth/login', {
     method: 'POST',
     body: new URLSearchParams({ username, password }),

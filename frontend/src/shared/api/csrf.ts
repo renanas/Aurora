@@ -13,3 +13,21 @@ export function csrfTokenFrom(cookieHeader: string): string | undefined {
   }
   return undefined
 }
+
+/**
+ * Garante que o cookie XSRF-TOKEN exista antes de uma chamada que altera algo.
+ * O servidor apaga o cookie no logout (e ele some se o servidor reinicia sem sessão); sem ele o
+ * login levaria 403. Se não houver token, faz `prime` (um GET qualquer, que recria o cookie
+ * mesmo respondendo 401) e ignora o resultado: o que importa é só o cookie.
+ */
+export async function ensureCsrfToken(
+  readCookie: () => string,
+  prime: () => Promise<unknown>,
+): Promise<void> {
+  if (csrfTokenFrom(readCookie())) return
+  try {
+    await prime()
+  } catch {
+    // 401 (esperado) ou falha de rede: o login em seguida mostra o erro verdadeiro.
+  }
+}
