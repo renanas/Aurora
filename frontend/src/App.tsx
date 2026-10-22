@@ -1,5 +1,7 @@
 import { Link, Navigate, NavLink, Outlet, Route, Routes } from 'react-router'
 import AgendaPage from './features/agenda/AgendaPage'
+import AuthGate from './features/auth/AuthGate'
+import LogoutButton from './features/auth/LogoutButton'
 import PatientsPage from './features/patients/PatientsPage'
 import PatientFormPage from './features/patients/PatientFormPage'
 
@@ -15,7 +17,7 @@ function NarrowLayout() {
   )
 }
 
-export default function App() {
+function Layout() {
   return (
     <div className="min-h-screen">
       <header className="border-b border-slate-200 bg-white">
@@ -30,6 +32,7 @@ export default function App() {
             <NavLink to="/patients" className={navClass}>
               Pacientes
             </NavLink>
+            <LogoutButton />
           </nav>
         </div>
       </header>
@@ -47,5 +50,13 @@ export default function App() {
         </Routes>
       </main>
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthGate>
+      <Layout />
+    </AuthGate>
   )
 }

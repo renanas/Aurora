@@ -1,3 +1,5 @@
+import { csrfTokenFrom } from './csrf'
+
 export interface FieldError {
   field: string
   message: string
@@ -34,19 +36,37 @@ export class ApiError extends Error {
 
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+  /** Objeto (vai como JSON) ou URLSearchParams (vai como formulário, usado só no login). */
   body?: unknown
 }
 
 /** Cliente HTTP único. Erros viram ApiError com o "code" estável do servidor. */
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const method = options.method ?? 'GET'
   const hasBody = options.body !== undefined
+  const isForm = options.body instanceof URLSearchParams
+
+  const headers: Record<string, string> = {}
+  if (hasBody && !isForm) {
+    headers['Content-Type'] = 'application/json'
+  }
+  // Toda chamada que altera algo devolve o token CSRF que o servidor entregou no cookie.
+  if (method !== 'GET' && typeof document !== 'undefined') {
+    const token = csrfTokenFrom(document.cookie)
+    if (token) headers['X-XSRF-TOKEN'] = token
+  }
+
+  let body: BodyInit | undefined
+  if (hasBody) {
+    body = isForm ? (options.body as URLSearchParams) : JSON.stringify(options.body)
+  }
 
   let response: Response
   try {
     response = await fetch(`/api${path}`, {
-      method: options.method ?? 'GET',
-      headers: hasBody ? { 'Content-Type': 'application/json' } : undefined,
-      body: hasBody ? JSON.stringify(options.body) : undefined,
+      method,
+      headers,
+      body,
       credentials: 'same-origin',
     })
   } catch {

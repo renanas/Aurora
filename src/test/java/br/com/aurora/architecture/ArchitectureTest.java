@@ -11,7 +11,8 @@ import com.tngtech.archunit.lang.ArchRule;
  * Sem estes testes, a divisão em pastas seria só uma convenção.
  *
  * Camadas dentro de cada módulo: web -> application -> domain; persistence -> domain.
- * Entre módulos: scheduling fala com patient só por patient.api; patient nunca conhece scheduling.
+ * Entre módulos: scheduling fala com patient só por patient.api; patient nunca conhece scheduling;
+ * auth é independente dos módulos de negócio (e eles não o conhecem).
  *
  * Atenção: os padrões das camadas levam o prefixo "br.com.aurora", senão "..persistence.." casaria
  * também com jakarta.persistence (as anotações JPA das entidades) e daria falso positivo.
@@ -77,5 +78,16 @@ class ArchitectureTest {
     static final ArchRule sharedDoesNotKnowModules = noClasses()
             .that().resideInAPackage("br.com.aurora.shared..")
             .should().dependOnClassesThat().resideInAnyPackage(
+                    "br.com.aurora.patient..", "br.com.aurora.scheduling..", "br.com.aurora.auth..");
+
+    @ArchTest
+    static final ArchRule authDoesNotKnowBusinessModules = noClasses()
+            .that().resideInAPackage("br.com.aurora.auth..")
+            .should().dependOnClassesThat().resideInAnyPackage(
                     "br.com.aurora.patient..", "br.com.aurora.scheduling..");
+
+    @ArchTest
+    static final ArchRule businessModulesDoNotKnowAuth = noClasses()
+            .that().resideInAnyPackage("br.com.aurora.patient..", "br.com.aurora.scheduling..")
+            .should().dependOnClassesThat().resideInAPackage("br.com.aurora.auth..");
 }

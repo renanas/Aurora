@@ -9,5 +9,14 @@ spring:
     user: aurora_migrator
     password: aurora_migrator_dev
 
+aurora:
+  auth:
+    username: aurora
+    password: aurora-dev-1234     # só para desenvolvimento; em produção vem de variável de ambiente
+
 server:
-  address: 127.0.0.1   # sem login ainda: nada de aceitar conexões da rede
+  address: 127.0.0.1   # só o Vite (proxy) fala com o Spring; nada de aceitar conexões da rede
+  servlet:
+    session:
+      cookie:
+        secure: false  # dev roda em HTTP (localhost ou IP do tablet)

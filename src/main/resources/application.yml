@@ -3,6 +3,7 @@
 #  - produção: variáveis de ambiente
 #      SPRING_DATASOURCE_URL / _USERNAME / _PASSWORD        (usuário da aplicação: sem DDL)
 #      SPRING_FLYWAY_URL / _USER / _PASSWORD                (usuário de migração: com DDL)
+#      AURORA_AUTH_USERNAME / AURORA_AUTH_PASSWORD          (login da usuária; senha com 12+ caracteres)
 spring:
   application:
     name: aurora-api
@@ -27,6 +28,13 @@ server:
     include-message: never
     include-stacktrace: never
     include-binding-errors: never
+  servlet:
+    session:
+      timeout: 8h                # ociosidade: ela atende o dia todo no tablet
+      cookie:
+        http-only: true
+        same-site: strict
+        secure: true             # produção roda em HTTPS; o perfil dev desliga
 
 logging:
   pattern:
