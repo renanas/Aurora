@@ -1,21 +1,17 @@
 package br.com.aurora.auth.web;
 
 import br.com.aurora.auth.application.LoginAttemptLimiter;
+import br.com.aurora.auth.application.LoginKeys;
 import java.time.Clock;
 import java.time.Duration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
@@ -25,57 +21,35 @@ import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.savedrequest.NullRequestCache;
 
 /**
- * Autenticação do Aurora: usuária única, sessão por cookie, tudo no mesmo domínio (sem CORS).
+ * Autenticação do Aurora: contas no banco (tabela app_user), sessão por cookie, tudo no mesmo
+ * domínio (sem CORS).
  *
  *  - Todo /api/** exige login; só /actuator/health é público. O que não é /api nem health é negado
  *    (nada sai sem sessão; o deploy decide depois como servir o frontend).
- *  - Login: POST /api/auth/login com formulário (username, password) -> 204. Logout: POST
+ *  - Login: POST /api/auth/login com formulário (username = e-mail, password) -> 204. Logout: POST
  *    /api/auth/logout -> 204. Erros no formato Problem Details com "code".
  *  - CSRF: cookie XSRF-TOKEN legível pelo JavaScript, devolvido no cabeçalho X-XSRF-TOKEN.
  *  - Cookie de sessão (JSESSIONID): HttpOnly, SameSite=Strict, Secure em produção (application.yml).
- *  - A usuária vem de aurora.auth.username / aurora.auth.password (variáveis de ambiente
- *    AURORA_AUTH_USERNAME / AURORA_AUTH_PASSWORD). Sem elas, ninguém consegue entrar.
+ *  - As contas vêm do banco (DatabaseUserDetailsService). A conta inicial do administrador é criada
+ *    na subida por AdminBootstrap, a partir de AURORA_AUTH_USERNAME / AURORA_AUTH_PASSWORD.
+ *  - Tentativas de login: 5 falhas seguidas num e-mail bloqueiam aquele e-mail por 15 minutos.
  */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
-
-    static final int MIN_PASSWORD_LENGTH = 12;
     static final int MAX_LOGIN_FAILURES = 5;
     static final Duration LOGIN_LOCK = Duration.ofMinutes(15);
+    static final int MAX_TRACKED_LOGIN_KEYS = 10_000;
 
     @Bean
     LoginAttemptLimiter loginAttemptLimiter() {
-        return new LoginAttemptLimiter(Clock.systemUTC(), MAX_LOGIN_FAILURES, LOGIN_LOCK);
+        return new LoginAttemptLimiter(Clock.systemUTC(), MAX_LOGIN_FAILURES, LOGIN_LOCK, MAX_TRACKED_LOGIN_KEYS);
     }
 
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    }
-
-    /**
-     * Único usuário, em memória. A senha das variáveis de ambiente é transformada em hash (BCrypt)
-     * na subida. Sem usuário configurado a aplicação sobe, mas ninguém loga (falha fechada).
-     */
-    @Bean
-    UserDetailsService userDetailsService(
-            @Value("${aurora.auth.username:}") String username,
-            @Value("${aurora.auth.password:}") String password,
-            PasswordEncoder encoder) {
-        if (username.isBlank() || password.isBlank()) {
-            log.warn("Usuário de login não configurado (AURORA_AUTH_USERNAME / AURORA_AUTH_PASSWORD): "
-                    + "ninguém conseguirá entrar.");
-            return new InMemoryUserDetailsManager();
-        }
-        if (password.length() < MIN_PASSWORD_LENGTH) {
-            throw new IllegalStateException(
-                    "aurora.auth.password precisa ter pelo menos " + MIN_PASSWORD_LENGTH + " caracteres.");
-        }
-        return new InMemoryUserDetailsManager(
-                User.withUsername(username).password(encoder.encode(password)).roles("USER").build());
     }
 
     @Bean
@@ -104,11 +78,12 @@ public class SecurityConfig {
                         .loginPage("/login") // rota do frontend; impede a página de login padrão do Spring
                         .loginProcessingUrl(LoginThrottleFilter.LOGIN_PATH)
                         .successHandler((request, response, authentication) -> {
-                            limiter.recordSuccess();
+                            limiter.recordSuccess(LoginKeys.of(request.getParameter(LoginThrottleFilter.USERNAME_PARAM)));
                             response.setStatus(HttpStatus.NO_CONTENT.value());
                         })
                         .failureHandler((request, response, exception) -> {
-                            limiter.recordFailure();
+                            // Mesma resposta para e-mail inexistente, senha errada e conta desativada.
+                            limiter.recordFailure(LoginKeys.of(request.getParameter(LoginThrottleFilter.USERNAME_PARAM)));
                             JsonProblemWriter.write(response, 401, "Credenciais inválidas",
                                     "BAD_CREDENTIALS", "Usuário ou senha incorretos.");
                         }))

@@ -1,6 +1,7 @@
 package br.com.aurora.auth.web;
 
 import br.com.aurora.auth.application.LoginAttemptLimiter;
+import br.com.aurora.auth.application.LoginKeys;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,13 +11,15 @@ import java.time.Duration;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Recusa tentativas de login (429) enquanto o limite de tentativas estiver bloqueando, sem nem
- * verificar a senha. Fica antes do filtro de login do Spring Security.
+ * Recusa tentativas de login (429) enquanto o e-mail digitado estiver bloqueado, sem nem verificar
+ * a senha. Vale igual para e-mail que existe e que não existe. Fica antes do filtro de login do
+ * Spring Security.
  * Não é um bean: é criado dentro da SecurityConfig para não ser registrado duas vezes.
  */
 final class LoginThrottleFilter extends OncePerRequestFilter {
 
     static final String LOGIN_PATH = "/api/auth/login";
+    static final String USERNAME_PARAM = "username";
 
     private final LoginAttemptLimiter limiter;
 
@@ -28,7 +31,7 @@ final class LoginThrottleFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         if ("POST".equals(request.getMethod()) && LOGIN_PATH.equals(request.getRequestURI())) {
-            Duration remaining = limiter.remainingLock();
+            Duration remaining = limiter.remainingLock(LoginKeys.of(request.getParameter(USERNAME_PARAM)));
             if (!remaining.isZero()) {
                 long seconds = (remaining.toMillis() + 999) / 1000;
                 long minutes = Math.max(1, (seconds + 59) / 60);

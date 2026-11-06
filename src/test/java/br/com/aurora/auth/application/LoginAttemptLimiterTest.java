@@ -13,6 +13,9 @@ import org.junit.jupiter.api.Test;
 
 class LoginAttemptLimiterTest {
 
+    private static final String ANA = "ana@aurora.test";
+    private static final String BIA = "bia@aurora.test";
+
     /** Relógio que só anda quando o teste manda. */
     static class MutableClock extends Clock {
         private Instant now = Instant.parse("2026-10-17T12:00:00Z");
@@ -43,109 +46,174 @@ class LoginAttemptLimiterTest {
     @BeforeEach
     void setUp() {
         clock = new MutableClock();
-        limiter = new LoginAttemptLimiter(clock, 5, Duration.ofMinutes(15));
+        limiter = new LoginAttemptLimiter(clock, 5, Duration.ofMinutes(15), 1000);
     }
 
-    private void fail(int times) {
+    private void fail(String key, int times) {
         for (int i = 0; i < times; i++) {
-            limiter.recordFailure();
+            limiter.recordFailure(key);
         }
     }
 
     @Test
     @DisplayName("começa liberado")
     void startsUnlocked() {
-        assertThat(limiter.remainingLock()).isZero();
+        assertThat(limiter.remainingLock(ANA)).isZero();
     }
 
     @Test
     @DisplayName("abaixo do limite continua liberado")
     void belowLimitStaysUnlocked() {
-        fail(4);
+        fail(ANA, 4);
 
-        assertThat(limiter.remainingLock()).isZero();
+        assertThat(limiter.remainingLock(ANA)).isZero();
     }
 
     @Test
     @DisplayName("na quinta falha seguida bloqueia pelo tempo configurado")
     void locksAfterMaxFailures() {
-        fail(5);
+        fail(ANA, 5);
 
-        assertThat(limiter.remainingLock()).isEqualTo(Duration.ofMinutes(15));
+        assertThat(limiter.remainingLock(ANA)).isEqualTo(Duration.ofMinutes(15));
+    }
+
+    @Test
+    @DisplayName("o bloqueio de um e-mail não atinge os outros")
+    void keysAreIndependent() {
+        fail(ANA, 5);
+
+        assertThat(limiter.remainingLock(ANA)).isPositive();
+        assertThat(limiter.remainingLock(BIA)).isZero();
+
+        fail(BIA, 4);
+        assertThat(limiter.remainingLock(BIA)).isZero();
     }
 
     @Test
     @DisplayName("o tempo de bloqueio diminui e o login volta depois dele")
     void lockExpires() {
-        fail(5);
+        fail(ANA, 5);
 
         clock.advance(Duration.ofMinutes(10));
-        assertThat(limiter.remainingLock()).isEqualTo(Duration.ofMinutes(5));
+        assertThat(limiter.remainingLock(ANA)).isEqualTo(Duration.ofMinutes(5));
 
         clock.advance(Duration.ofMinutes(5));
-        assertThat(limiter.remainingLock()).isZero();
+        assertThat(limiter.remainingLock(ANA)).isZero();
     }
 
     @Test
     @DisplayName("depois que o bloqueio acaba, a contagem recomeça do zero")
     void countRestartsAfterLock() {
-        fail(5);
+        fail(ANA, 5);
         clock.advance(Duration.ofMinutes(15));
 
-        fail(4);
+        fail(ANA, 4);
 
-        assertThat(limiter.remainingLock()).isZero();
+        assertThat(limiter.remainingLock(ANA)).isZero();
     }
 
     @Test
-    @DisplayName("login bem-sucedido zera as falhas")
+    @DisplayName("login bem-sucedido zera as falhas daquele e-mail")
     void successResetsFailures() {
-        fail(4);
-        limiter.recordSuccess();
+        fail(ANA, 4);
+        limiter.recordSuccess(ANA);
 
-        fail(4);
+        fail(ANA, 4);
 
-        assertThat(limiter.remainingLock()).isZero();
+        assertThat(limiter.remainingLock(ANA)).isZero();
     }
 
     @Test
     @DisplayName("falhas antigas (além da janela) são esquecidas")
     void oldFailuresAreForgotten() {
-        fail(4);
+        fail(ANA, 4);
         clock.advance(Duration.ofMinutes(15));
 
-        fail(1);
+        fail(ANA, 1);
 
-        assertThat(limiter.remainingLock()).isZero();
+        assertThat(limiter.remainingLock(ANA)).isZero();
     }
 
     @Test
     @DisplayName("falha durante o bloqueio não estende o bloqueio")
     void failureWhileLockedDoesNotExtend() {
-        fail(5);
+        fail(ANA, 5);
         clock.advance(Duration.ofMinutes(5));
 
-        fail(3);
+        fail(ANA, 3);
 
-        assertThat(limiter.remainingLock()).isEqualTo(Duration.ofMinutes(10));
+        assertThat(limiter.remainingLock(ANA)).isEqualTo(Duration.ofMinutes(10));
     }
 
     @Test
-    @DisplayName("recordSuccess também libera um bloqueio (usado para reiniciar o estado)")
+    @DisplayName("recordSuccess também libera um bloqueio")
     void successClearsLock() {
-        fail(5);
+        fail(ANA, 5);
 
-        limiter.recordSuccess();
+        limiter.recordSuccess(ANA);
 
-        assertThat(limiter.remainingLock()).isZero();
+        assertThat(limiter.remainingLock(ANA)).isZero();
+    }
+
+    @Test
+    @DisplayName("reset esquece todos os e-mails")
+    void resetForgetsEverything() {
+        fail(ANA, 5);
+        fail(BIA, 5);
+
+        limiter.reset();
+
+        assertThat(limiter.remainingLock(ANA)).isZero();
+        assertThat(limiter.remainingLock(BIA)).isZero();
+    }
+
+    @Test
+    @DisplayName("com a memória cheia, descarta primeiro quem não está bloqueado e mantém os bloqueios")
+    void fullMemoryEvictsUnlockedFirst() {
+        LoginAttemptLimiter small = new LoginAttemptLimiter(clock, 5, Duration.ofMinutes(15), 3);
+        for (int i = 0; i < 5; i++) {
+            small.recordFailure("a");   // a: bloqueado (o mais antigo)
+        }
+        small.recordFailure("b");        // b: 1 falha
+        small.recordFailure("c");        // c: 1 falha  (a, b, c: cheio)
+
+        small.recordFailure("d");        // precisa de espaço: sai b (o não bloqueado mais antigo)
+
+        assertThat(small.remainingLock("a")).isPositive();
+        // b foi esquecido: 4 falhas novas não bastam para bloquear (se lembrasse da anterior, seriam 5)
+        for (int i = 0; i < 4; i++) {
+            small.recordFailure("b");
+        }
+        assertThat(small.remainingLock("b")).isZero();
+    }
+
+    @Test
+    @DisplayName("com a memória cheia, o que já expirou sai antes de qualquer outro")
+    void fullMemoryDropsExpiredFirst() {
+        LoginAttemptLimiter small = new LoginAttemptLimiter(clock, 5, Duration.ofMinutes(15), 2);
+        for (int i = 0; i < 5; i++) {
+            small.recordFailure("a");   // a: bloqueado até +15 min
+        }
+        clock.advance(Duration.ofMinutes(10));
+        small.recordFailure("b");        // b: 1 falha, recente (a, b: cheio)
+        clock.advance(Duration.ofMinutes(6)); // a expirou; b ainda vale
+
+        small.recordFailure("c");        // sai a (expirado); b fica
+
+        for (int i = 0; i < 4; i++) {
+            small.recordFailure("b");
+        }
+        assertThat(small.remainingLock("b")).isPositive(); // b lembrava da 1ª falha: 1 + 4 = 5
     }
 
     @Test
     @DisplayName("rejeita configuração inválida")
     void rejectsInvalidConfig() {
-        assertThatThrownBy(() -> new LoginAttemptLimiter(clock, 0, Duration.ofMinutes(1)))
+        assertThatThrownBy(() -> new LoginAttemptLimiter(clock, 0, Duration.ofMinutes(1), 10))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new LoginAttemptLimiter(clock, 3, Duration.ZERO))
+        assertThatThrownBy(() -> new LoginAttemptLimiter(clock, 3, Duration.ZERO, 10))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new LoginAttemptLimiter(clock, 3, Duration.ofMinutes(1), 0))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }

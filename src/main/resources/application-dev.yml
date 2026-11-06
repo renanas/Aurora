@@ -11,8 +11,9 @@ spring:
 
 aurora:
   auth:
-    username: aurora
-    password: aurora-dev-1234     # só para desenvolvimento; em produção vem de variável de ambiente
+    username: aurora@aurora.local   # e-mail da conta inicial (ADMIN); só para desenvolvimento
+    password: aurora-dev-1234       # só para desenvolvimento; em produção vem de variável de ambiente
+    display-name: Aurora (dev)
 
 server:
   address: 127.0.0.1   # só o Vite (proxy) fala com o Spring; nada de aceitar conexões da rede
