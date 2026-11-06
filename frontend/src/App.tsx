@@ -1,6 +1,7 @@
 import { Link, Navigate, NavLink, Outlet, Route, Routes } from 'react-router'
 import AgendaPage from './features/agenda/AgendaPage'
 import AuthGate from './features/auth/AuthGate'
+import CurrentUserName from './features/auth/CurrentUserName'
 import LogoutButton from './features/auth/LogoutButton'
 import PatientsPage from './features/patients/PatientsPage'
 import PatientFormPage from './features/patients/PatientFormPage'
@@ -32,6 +33,7 @@ function Layout() {
             <NavLink to="/patients" className={navClass}>
               Pacientes
             </NavLink>
+            <CurrentUserName />
             <LogoutButton />
           </nav>
         </div>

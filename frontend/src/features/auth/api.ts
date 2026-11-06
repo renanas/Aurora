@@ -3,7 +3,11 @@ import { ApiError, api } from '../../shared/api/client'
 import { ensureCsrfToken } from '../../shared/api/csrf'
 
 export interface Me {
+  /** E-mail da conta (o login). */
   username: string
+  /** Nome para exibir no cabeçalho. */
+  displayName: string
+  role: 'ADMIN' | 'PSYCHOLOGIST'
 }
 
 /** Chave do "quem está logado" no cache: null = sem sessão. */

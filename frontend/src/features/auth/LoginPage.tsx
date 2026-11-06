@@ -40,10 +40,11 @@ export default function LoginPage() {
         <p className="mt-1 text-slate-600">Entre para ver a agenda.</p>
 
         <label className="mt-6 block text-base font-medium text-slate-700">
-          Usuário
+          E-mail
           <input
             className={inputClass}
             type="text"
+            inputMode="email"
             autoComplete="username"
             autoCapitalize="none"
             autoFocus
