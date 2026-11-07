@@ -6,16 +6,19 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import br.com.aurora.shared.error.BusinessRuleException;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class PatientTest {
+    private static final UUID OWNER = UUID.randomUUID();
+
 
     private static final Instant T1 = Instant.parse("2026-10-01T12:00:00Z");
     private static final Instant T2 = Instant.parse("2026-10-02T12:00:00Z");
 
     private Patient maria() {
-        return new Patient("  Maria Silva ", "(11) 99999-8888", new BigDecimal("180"), T1);
+        return new Patient(OWNER, "  Maria Silva ", "(11) 99999-8888", new BigDecimal("180"), T1);
     }
 
     @Test
@@ -33,11 +36,11 @@ class PatientTest {
     @Test
     @DisplayName("nome vazio, nome longo demais e valor negativo são rejeitados")
     void rejectsInvalidData() {
-        assertThatThrownBy(() -> new Patient("   ", "11999998888", BigDecimal.TEN, T1))
+        assertThatThrownBy(() -> new Patient(OWNER, "   ", "11999998888", BigDecimal.TEN, T1))
                 .isInstanceOf(BusinessRuleException.class);
-        assertThatThrownBy(() -> new Patient("a".repeat(151), "11999998888", BigDecimal.TEN, T1))
+        assertThatThrownBy(() -> new Patient(OWNER, "a".repeat(151), "11999998888", BigDecimal.TEN, T1))
                 .isInstanceOf(BusinessRuleException.class);
-        assertThatThrownBy(() -> new Patient("Maria", "11999998888", new BigDecimal("-1"), T1))
+        assertThatThrownBy(() -> new Patient(OWNER, "Maria", "11999998888", new BigDecimal("-1"), T1))
                 .isInstanceOf(BusinessRuleException.class);
     }
 
@@ -76,5 +79,23 @@ class PatientTest {
         assertThat(p.activate(T2)).isTrue();
         assertThat(p.activate(T2)).isFalse();
         assertThat(p.isActive()).isTrue();
+    }
+
+    @Test
+    @DisplayName("o paciente guarda a psicóloga dona e não existe sem ela")
+    void keepsTheOwner() {
+        assertThat(maria().getPsychologistId()).isEqualTo(OWNER);
+        assertThatThrownBy(() -> new Patient(null, "Maria", "11999998888", BigDecimal.TEN, T1))
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    @DisplayName("atualizar os dados não muda a dona")
+    void updateKeepsTheOwner() {
+        Patient p = maria();
+
+        p.update("Maria Souza", "11988887777", new BigDecimal("200"), T2);
+
+        assertThat(p.getPsychologistId()).isEqualTo(OWNER);
     }
 }

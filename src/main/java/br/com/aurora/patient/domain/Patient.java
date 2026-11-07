@@ -11,6 +11,7 @@ import jakarta.persistence.Version;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 /** Quem é atendido. Nunca é apagado: só inativado. */
@@ -23,6 +24,10 @@ public class Patient {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    /** A psicóloga dona do paciente. Nunca muda. */
+    @Column(name = "psychologist_id", nullable = false, updatable = false)
+    private UUID psychologistId;
 
     @Column(nullable = false)
     private String name;
@@ -48,7 +53,8 @@ public class Patient {
     protected Patient() {
     }
 
-    public Patient(String name, String whatsapp, BigDecimal sessionPrice, Instant now) {
+    public Patient(UUID psychologistId, String name, String whatsapp, BigDecimal sessionPrice, Instant now) {
+        this.psychologistId = Objects.requireNonNull(psychologistId, "psychologistId");
         this.name = normalizeName(name);
         this.whatsapp = Whatsapp.of(whatsapp).digits();
         this.sessionPrice = normalizePrice(sessionPrice);
@@ -108,6 +114,10 @@ public class Patient {
 
     public UUID getId() {
         return id;
+    }
+
+    public UUID getPsychologistId() {
+        return psychologistId;
     }
 
     public String getName() {

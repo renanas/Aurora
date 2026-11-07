@@ -7,6 +7,7 @@ import br.com.aurora.scheduling.domain.TherapySession;
 import br.com.aurora.scheduling.persistence.TherapySessionRepository;
 import br.com.aurora.shared.error.BusinessRuleException;
 import br.com.aurora.shared.error.NotFoundException;
+import br.com.aurora.shared.security.CurrentPsychologist;
 import br.com.aurora.shared.time.SystemConstants;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -24,10 +25,13 @@ public class SessionQueryService {
 
     private final TherapySessionRepository sessions;
     private final PatientLookup patients;
+    private final CurrentPsychologist current;
 
-    public SessionQueryService(TherapySessionRepository sessions, PatientLookup patients) {
+    public SessionQueryService(TherapySessionRepository sessions, PatientLookup patients,
+            CurrentPsychologist current) {
         this.sessions = sessions;
         this.patients = patients;
+        this.current = current;
     }
 
     /** Sessões dos dias de {@code from} a {@code to}, inclusive. */
@@ -38,23 +42,24 @@ public class SessionQueryService {
             throw new BusinessRuleException("INVALID_DATE_RANGE",
                     "O período deve ter de 1 a " + SystemConstants.MAX_AGENDA_RANGE_DAYS + " dias.");
         }
-        List<TherapySession> found = sessions.findByStartsAtGreaterThanEqualAndStartsAtLessThanOrderByStartsAt(
-                from.atStartOfDay(), to.plusDays(1).atStartOfDay());
+        List<TherapySession> found = sessions.findInRange(
+                current.id(), from.atStartOfDay(), to.plusDays(1).atStartOfDay());
         return toDetails(found, found);
     }
 
     @Transactional(readOnly = true)
     public SessionDetails get(UUID id) {
-        TherapySession session = sessions.findById(id).orElseThrow(() -> new NotFoundException("Sessão", id));
+        TherapySession session = sessions.findByIdAndPsychologistId(id, current.id())
+                .orElseThrow(() -> new NotFoundException("Sessão", id));
         // Quem pode colidir começa antes do fim desta sessão e (por folga) no máximo um dia antes do início.
-        List<TherapySession> neighbours = sessions.findByStartsAtGreaterThanEqualAndStartsAtLessThanOrderByStartsAt(
-                session.getStartsAt().minusDays(1), session.endsAt());
+        List<TherapySession> neighbours = sessions.findInRange(
+                current.id(), session.getStartsAt().minusDays(1), session.endsAt());
         return toDetails(List.of(session), neighbours).getFirst();
     }
 
     private List<SessionDetails> toDetails(List<TherapySession> targets, List<TherapySession> universe) {
         Set<UUID> patientIds = targets.stream().map(TherapySession::getPatientId).collect(Collectors.toSet());
-        Map<UUID, PatientInfo> names = patients.findAllById(patientIds);
+        Map<UUID, PatientInfo> names = patients.findAllById(current.id(), patientIds);
 
         List<OverlapPolicy.Slot> slots = universe.stream()
                 .filter(s -> s.getStatus().occupiesSlot())

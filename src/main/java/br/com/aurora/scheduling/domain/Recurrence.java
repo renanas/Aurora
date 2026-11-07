@@ -12,6 +12,7 @@ import jakarta.persistence.Version;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -25,6 +26,10 @@ public class Recurrence {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    /** Cópia do dono do paciente (o banco confere que são o mesmo). Nunca muda. */
+    @Column(name = "psychologist_id", nullable = false, updatable = false)
+    private UUID psychologistId;
 
     @Column(name = "patient_id", nullable = false, updatable = false)
     private UUID patientId;
@@ -51,7 +56,9 @@ public class Recurrence {
     protected Recurrence() {
     }
 
-    public Recurrence(UUID patientId, LocalDate anchorDate, LocalTime startTime, Frequency frequency, Instant now) {
+    public Recurrence(UUID psychologistId, UUID patientId, LocalDate anchorDate, LocalTime startTime,
+            Frequency frequency, Instant now) {
+        this.psychologistId = Objects.requireNonNull(psychologistId, "psychologistId");
         this.patientId = patientId;
         this.anchorDate = anchorDate;
         this.startTime = startTime;
@@ -79,6 +86,10 @@ public class Recurrence {
 
     public UUID getId() {
         return id;
+    }
+
+    public UUID getPsychologistId() {
+        return psychologistId;
     }
 
     public UUID getPatientId() {

@@ -30,6 +30,10 @@ public class TherapySession {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    /** Cópia do dono do paciente (o banco confere que são o mesmo). Nunca muda. */
+    @Column(name = "psychologist_id", nullable = false, updatable = false)
+    private UUID psychologistId;
+
     @Column(name = "patient_id", nullable = false, updatable = false)
     private UUID patientId;
 
@@ -79,9 +83,10 @@ public class TherapySession {
     }
 
     /** Sessão gerada a partir de uma recorrência: nasce agendada e com pagamento pendente. */
-    public static TherapySession generated(UUID patientId, UUID recurrenceId, LocalDate occurrenceDate,
-            LocalDateTime startsAt, BigDecimal amount, Instant now) {
+    public static TherapySession generated(UUID psychologistId, UUID patientId, UUID recurrenceId,
+            LocalDate occurrenceDate, LocalDateTime startsAt, BigDecimal amount, Instant now) {
         TherapySession s = new TherapySession();
+        s.psychologistId = Objects.requireNonNull(psychologistId, "psychologistId");
         s.patientId = patientId;
         s.recurrenceId = recurrenceId;
         s.occurrenceDate = occurrenceDate;
@@ -193,8 +198,10 @@ public class TherapySession {
     // ---------- agenda (entrega D) ----------
 
     /** Sessão avulsa: fora de qualquer recorrência. Nasce agendada e com pagamento pendente. */
-    public static TherapySession standalone(UUID patientId, LocalDateTime startsAt, BigDecimal amount, Instant now) {
+    public static TherapySession standalone(UUID psychologistId, UUID patientId, LocalDateTime startsAt,
+            BigDecimal amount, Instant now) {
         TherapySession s = new TherapySession();
+        s.psychologistId = Objects.requireNonNull(psychologistId, "psychologistId");
         s.patientId = patientId;
         s.startsAt = startsAt;
         s.durationMinutes = (short) SystemConstants.SESSION_DURATION_MINUTES;
@@ -233,6 +240,7 @@ public class TherapySession {
             throw new BusinessRuleException("RESCHEDULE_SAME_TIME", "Escolha um horário diferente do atual.");
         }
         TherapySession next = new TherapySession();
+        next.psychologistId = psychologistId;
         next.patientId = patientId;
         next.rescheduledFromId = id;
         next.startsAt = newStart;
@@ -301,6 +309,10 @@ public class TherapySession {
 
     public UUID getId() {
         return id;
+    }
+
+    public UUID getPsychologistId() {
+        return psychologistId;
     }
 
     public UUID getPatientId() {

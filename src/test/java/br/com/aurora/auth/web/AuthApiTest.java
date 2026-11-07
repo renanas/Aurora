@@ -15,10 +15,13 @@ import br.com.aurora.auth.application.LoginAttemptLimiter;
 import br.com.aurora.auth.domain.AppUser;
 import br.com.aurora.auth.domain.Role;
 import br.com.aurora.auth.persistence.AppUserRepository;
+import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.http.Cookie;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
@@ -61,6 +65,8 @@ class AuthApiTest {
     AppUserRepository users;
     @Autowired
     PasswordEncoder encoder;
+    @Autowired
+    JdbcTemplate jdbc;
 
     MockMvc mvc;
     final List<AppUser> extraUsers = new ArrayList<>();
@@ -73,6 +79,10 @@ class AuthApiTest {
 
     @AfterEach
     void removeExtraUsers() {
+        // Pacientes e sessões apontam para as contas: sai tudo antes das contas extras.
+        jdbc.update("DELETE FROM therapy_session");
+        jdbc.update("DELETE FROM recurrence");
+        jdbc.update("DELETE FROM patient");
         users.deleteAll(extraUsers); // só as contas criadas pelo teste; a do administrador fica
         extraUsers.clear();
     }
@@ -318,6 +328,41 @@ class AuthApiTest {
             login(USER, WRONG, token).andExpect(status().isUnauthorized());
         }
         login(USER, PASSWORD, token).andExpect(status().isNoContent());
+    }
+
+    // ---------- dona dos dados (CurrentPsychologist de verdade, com login) ----------
+
+    private MockHttpSession loginSession(String email, String password, String token) throws Exception {
+        MvcResult result = login(email, password, token).andExpect(status().isNoContent()).andReturn();
+        return (MockHttpSession) result.getRequest().getSession(false);
+    }
+
+    @Test
+    @DisplayName("o paciente criado por quem está logada é dela, e outra conta não o vê nem o acessa")
+    void patientBelongsToTheLoggedInAccount() throws Exception {
+        createUser("bia@aurora.test", "senha-da-bia-123", Role.PSYCHOLOGIST, true);
+        String token = csrfToken();
+        MockHttpSession admin = loggedInSession(token);
+
+        String body = mvc.perform(post("/api/patients").session(admin)
+                        .cookie(new Cookie("XSRF-TOKEN", token)).header("X-XSRF-TOKEN", token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Maria\",\"whatsapp\":\"5511999998888\",\"sessionPrice\":180}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        String patientId = JsonPath.read(body, "$.id");
+
+        UUID owner = jdbc.queryForObject("SELECT psychologist_id FROM patient WHERE id = ?", UUID.class,
+                UUID.fromString(patientId));
+        assertThat(owner).isEqualTo(users.findByEmail(USER).orElseThrow().id());
+
+        MockHttpSession bia = loginSession("bia@aurora.test", "senha-da-bia-123", token);
+        mvc.perform(get("/api/patients").session(bia))
+                .andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
+        mvc.perform(get("/api/patients/" + patientId).session(bia))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/patients/" + patientId).session(admin))
+                .andExpect(status().isOk());
     }
 
     // ---------- conta inicial (AdminBootstrap) ----------

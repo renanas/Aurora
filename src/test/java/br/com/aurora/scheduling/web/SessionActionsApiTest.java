@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import br.com.aurora.TestPsychologistConfig;
 import br.com.aurora.TestcontainersConfig;
 import br.com.aurora.shared.error.RequestIdFilter;
 import br.com.aurora.shared.time.SystemConstants;
@@ -30,7 +31,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 /** Ações da sessão (entrega C) contra PostgreSQL real: confirmar, realizada, falta, cancelar e pagamento. */
 @SpringBootTest
-@Import(TestcontainersConfig.class)
+@Import({TestcontainersConfig.class, TestPsychologistConfig.class})
 class SessionActionsApiTest {
 
     @Autowired

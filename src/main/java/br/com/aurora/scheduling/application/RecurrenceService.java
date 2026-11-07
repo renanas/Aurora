@@ -11,6 +11,7 @@ import br.com.aurora.scheduling.persistence.RecurrenceRepository;
 import br.com.aurora.scheduling.persistence.TherapySessionRepository;
 import br.com.aurora.shared.error.BusinessRuleException;
 import br.com.aurora.shared.error.NotFoundException;
+import br.com.aurora.shared.security.CurrentPsychologist;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -36,14 +37,16 @@ public class RecurrenceService {
     private final PatientLookup patients;
     private final SessionGenerator generator;
     private final Clock clock;
+    private final CurrentPsychologist current;
 
     public RecurrenceService(RecurrenceRepository recurrences, TherapySessionRepository sessions,
-            PatientLookup patients, SessionGenerator generator, Clock clock) {
+            PatientLookup patients, SessionGenerator generator, Clock clock, CurrentPsychologist current) {
         this.recurrences = recurrences;
         this.sessions = sessions;
         this.patients = patients;
         this.generator = generator;
         this.clock = clock;
+        this.current = current;
     }
 
     @Transactional(readOnly = true)
@@ -63,9 +66,9 @@ public class RecurrenceService {
         }
         Frequency frequency = Frequency.valueOf(frequencyName);
 
-        Optional<Recurrence> current = recurrences.findByPatientIdAndEndsOnIsNull(patientId);
-        if (current.isPresent()) {
-            Recurrence old = current.get();
+        Optional<Recurrence> activeRecurrence = recurrences.findByPatientIdAndEndsOnIsNull(patientId);
+        if (activeRecurrence.isPresent()) {
+            Recurrence old = activeRecurrence.get();
             if (old.hasSameSchedule(anchorDate, startTime, frequency)) {
                 return RecurrenceDetails.from(old);
             }
@@ -73,7 +76,7 @@ public class RecurrenceService {
         }
 
         Recurrence created = recurrences.save(
-                new Recurrence(patientId, anchorDate, startTime, frequency, Instant.now(clock)));
+                new Recurrence(current.id(), patientId, anchorDate, startTime, frequency, Instant.now(clock)));
         generator.generate(created);
         return RecurrenceDetails.from(created);
     }
@@ -130,6 +133,6 @@ public class RecurrenceService {
     }
 
     private PatientInfo requirePatient(UUID patientId) {
-        return patients.find(patientId).orElseThrow(() -> new NotFoundException("Paciente", patientId));
+        return patients.find(current.id(), patientId).orElseThrow(() -> new NotFoundException("Paciente", patientId));
     }
 }

@@ -15,6 +15,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 /** Agenda (entrega D): sessão avulsa, corrigir horário, reagendar, desfazer e reabrir, sem banco. */
 class TherapySessionPlanningTest {
+    private static final UUID OWNER = UUID.randomUUID();
+
 
     private static final Instant NOW = Instant.parse("2026-09-28T12:00:00Z");
     private static final LocalDateTime NINE = LocalDateTime.of(2026, 10, 20, 9, 0);
@@ -22,7 +24,7 @@ class TherapySessionPlanningTest {
 
     /** O id real só nasce ao gravar no banco; aqui é preciso um para ligar reagendamentos. */
     private static TherapySession newSession() {
-        TherapySession s = TherapySession.generated(UUID.randomUUID(), UUID.randomUUID(), LocalDate.of(2026, 10, 20),
+        TherapySession s = TherapySession.generated(OWNER, UUID.randomUUID(), UUID.randomUUID(), LocalDate.of(2026, 10, 20),
                 NINE, new BigDecimal("180.00"), NOW);
         ReflectionTestUtils.setField(s, "id", UUID.randomUUID());
         return s;
@@ -36,7 +38,7 @@ class TherapySessionPlanningTest {
     @Test
     @DisplayName("sessão avulsa: sem recorrência, agendada, pendente e com 50 minutos")
     void standaloneSession() {
-        TherapySession s = TherapySession.standalone(UUID.randomUUID(), NINE, new BigDecimal("150.00"), NOW);
+        TherapySession s = TherapySession.standalone(OWNER, UUID.randomUUID(), NINE, new BigDecimal("150.00"), NOW);
 
         assertThat(s.getRecurrenceId()).isNull();
         assertThat(s.getOccurrenceDate()).isNull();
@@ -188,5 +190,27 @@ class TherapySessionPlanningTest {
 
         assertThat(s.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
         assertThat(s.isBillable()).isTrue();
+    }
+
+    @Test
+    @DisplayName("sessão gerada, avulsa e reagendada ficam todas com a mesma psicóloga dona")
+    void allKindsKeepTheOwner() {
+        TherapySession generated = newSession();
+        TherapySession standalone = TherapySession.standalone(OWNER, UUID.randomUUID(), NINE, new BigDecimal("150.00"), NOW);
+        TherapySession rescheduled = generated.rescheduleTo(ELEVEN, NOW);
+
+        assertThat(generated.getPsychologistId()).isEqualTo(OWNER);
+        assertThat(standalone.getPsychologistId()).isEqualTo(OWNER);
+        assertThat(rescheduled.getPsychologistId()).isEqualTo(OWNER);
+    }
+
+    @Test
+    @DisplayName("sessão não existe sem psicóloga dona")
+    void requiresTheOwner() {
+        assertThatThrownBy(() -> TherapySession.standalone(null, UUID.randomUUID(), NINE, new BigDecimal("150.00"), NOW))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> TherapySession.generated(null, UUID.randomUUID(), UUID.randomUUID(),
+                LocalDate.of(2026, 10, 20), NINE, new BigDecimal("180.00"), NOW))
+                .isInstanceOf(NullPointerException.class);
     }
 }

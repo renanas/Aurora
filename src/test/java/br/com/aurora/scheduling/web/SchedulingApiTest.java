@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import br.com.aurora.TestPsychologistConfig;
 import br.com.aurora.TestcontainersConfig;
 import br.com.aurora.scheduling.application.SessionGenerator;
 import br.com.aurora.shared.error.RequestIdFilter;
@@ -35,7 +36,7 @@ import org.springframework.web.context.WebApplicationContext;
  * semanal = 8 sessões (dias +1, +8, ..., +50); quinzenal = 4 sessões (dias +1, +15, +29, +43).
  */
 @SpringBootTest
-@Import(TestcontainersConfig.class)
+@Import({TestcontainersConfig.class, TestPsychologistConfig.class})
 class SchedulingApiTest {
 
     @Autowired

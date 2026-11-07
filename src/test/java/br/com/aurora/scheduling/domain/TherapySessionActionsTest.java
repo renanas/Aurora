@@ -15,11 +15,13 @@ import org.junit.jupiter.api.Test;
 
 /** Ações da sessão (entrega C): transições de situação e pagamento, sem banco. */
 class TherapySessionActionsTest {
+    private static final UUID OWNER = UUID.randomUUID();
+
 
     private static final Instant NOW = Instant.parse("2026-09-28T12:00:00Z");
 
     private static TherapySession newSession() {
-        return TherapySession.generated(UUID.randomUUID(), UUID.randomUUID(), LocalDate.of(2026, 9, 29),
+        return TherapySession.generated(OWNER, UUID.randomUUID(), UUID.randomUUID(), LocalDate.of(2026, 9, 29),
                 LocalDateTime.of(2026, 9, 29, 9, 0), new BigDecimal("180.00"), NOW);
     }
 

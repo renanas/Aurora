@@ -14,9 +14,19 @@ import org.springframework.data.repository.query.Param;
 
 public interface TherapySessionRepository extends JpaRepository<TherapySession, UUID> {
 
-    /** Sessões que começam em [from, to). */
-    List<TherapySession> findByStartsAtGreaterThanEqualAndStartsAtLessThanOrderByStartsAt(
-            LocalDateTime from, LocalDateTime to);
+    /** Sessão só da psicóloga dada: de outra, é como se não existisse. */
+    Optional<TherapySession> findByIdAndPsychologistId(UUID id, UUID psychologistId);
+
+    /** Sessões da psicóloga que começam em [from, to). Toda leitura da agenda passa por aqui, sempre com a dona. */
+    @Query("""
+            select s from TherapySession s
+            where s.psychologistId = :psychologistId
+              and s.startsAt >= :from
+              and s.startsAt < :to
+            order by s.startsAt
+            """)
+    List<TherapySession> findInRange(@Param("psychologistId") UUID psychologistId,
+            @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
     long countByRecurrenceId(UUID recurrenceId);
 

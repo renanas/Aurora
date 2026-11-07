@@ -86,6 +86,12 @@ class ArchitectureTest {
             .should().dependOnClassesThat().resideInAnyPackage(
                     "br.com.aurora.patient..", "br.com.aurora.scheduling..");
 
+    /** A única ponte com a autenticação é shared.security.CurrentPsychologist, que o auth implementa. */
+    @ArchTest
+    static final ArchRule businessModulesDoNotUseSpringSecurity = noClasses()
+            .that().resideInAnyPackage("br.com.aurora.patient..", "br.com.aurora.scheduling..")
+            .should().dependOnClassesThat().resideInAPackage("org.springframework.security..");
+
     @ArchTest
     static final ArchRule businessModulesDoNotKnowAuth = noClasses()
             .that().resideInAnyPackage("br.com.aurora.patient..", "br.com.aurora.scheduling..")

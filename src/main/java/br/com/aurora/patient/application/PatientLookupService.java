@@ -23,18 +23,18 @@ public class PatientLookupService implements PatientLookup {
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<PatientInfo> find(UUID id) {
-        return repository.findById(id).map(PatientLookupService::toInfo);
+    public Optional<PatientInfo> find(UUID psychologistId, UUID id) {
+        return repository.findByIdAndPsychologistId(id, psychologistId).map(PatientLookupService::toInfo);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Map<UUID, PatientInfo> findAllById(Collection<UUID> ids) {
+    public Map<UUID, PatientInfo> findAllById(UUID psychologistId, Collection<UUID> ids) {
         if (ids.isEmpty()) {
             return Map.of();
         }
         Map<UUID, PatientInfo> result = new HashMap<>();
-        for (Patient patient : repository.findAllById(ids)) {
+        for (Patient patient : repository.findByIdInAndPsychologistId(ids, psychologistId)) {
             result.put(patient.getId(), toInfo(patient));
         }
         return result;

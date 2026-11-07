@@ -10,6 +10,7 @@ import br.com.aurora.shared.error.BusinessRuleException;
 import br.com.aurora.shared.error.Conflict;
 import br.com.aurora.shared.error.NotFoundException;
 import br.com.aurora.shared.error.OverlapDetectedException;
+import br.com.aurora.shared.security.CurrentPsychologist;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -36,24 +37,26 @@ public class SessionPlanningService {
     private final SessionQueryService query;
     private final PatientLookup patients;
     private final Clock clock;
+    private final CurrentPsychologist current;
 
     public SessionPlanningService(TherapySessionRepository sessions, SessionQueryService query,
-            PatientLookup patients, Clock clock) {
+            PatientLookup patients, Clock clock, CurrentPsychologist current) {
         this.sessions = sessions;
         this.query = query;
         this.patients = patients;
         this.clock = clock;
+        this.current = current;
     }
 
     /** Sessão avulsa (fora da recorrência), com o valor atual do paciente. */
     @Transactional
     public SessionDetails create(UUID patientId, LocalDateTime startsAt, boolean confirmOverlap) {
-        PatientInfo patient = patients.find(patientId)
+        PatientInfo patient = patients.find(current.id(), patientId)
                 .orElseThrow(() -> new NotFoundException("Paciente", patientId));
         if (!patient.active()) {
             throw new BusinessRuleException("PATIENT_INACTIVE", "O paciente está inativo.");
         }
-        TherapySession session = TherapySession.standalone(patientId, startsAt, patient.sessionPrice(), now());
+        TherapySession session = TherapySession.standalone(current.id(), patientId, startsAt, patient.sessionPrice(), now());
         checkOverlap(startsAt, session.getDurationMinutes(), confirmOverlap, Set.of());
         TherapySession saved = sessions.save(session);
         return query.get(saved.getId());
@@ -135,8 +138,7 @@ public class SessionPlanningService {
         }
         LocalDateTime end = start.plusMinutes(durationMinutes);
         // Quem pode colidir começa antes do fim do novo horário e (por folga) no máximo um dia antes do início.
-        List<TherapySession> hits = sessions
-                .findByStartsAtGreaterThanEqualAndStartsAtLessThanOrderByStartsAt(start.minusDays(1), end).stream()
+        List<TherapySession> hits = sessions.findInRange(current.id(), start.minusDays(1), end).stream()
                 .filter(s -> s.getStatus().occupiesSlot())
                 .filter(s -> !ignore.contains(s.getId()))
                 .filter(s -> OverlapPolicy.overlaps(start, end, s.getStartsAt(), s.endsAt()))
@@ -145,7 +147,7 @@ public class SessionPlanningService {
             return;
         }
         Set<UUID> patientIds = hits.stream().map(TherapySession::getPatientId).collect(Collectors.toSet());
-        Map<UUID, PatientInfo> names = patients.findAllById(patientIds);
+        Map<UUID, PatientInfo> names = patients.findAllById(current.id(), patientIds);
         throw new OverlapDetectedException(hits.stream()
                 .map(s -> new Conflict(s.getId(),
                         names.containsKey(s.getPatientId()) ? names.get(s.getPatientId()).name() : "",
@@ -154,7 +156,8 @@ public class SessionPlanningService {
     }
 
     private TherapySession load(UUID id) {
-        return sessions.findById(id).orElseThrow(() -> new NotFoundException("Sessão", id));
+        return sessions.findByIdAndPsychologistId(id, current.id())
+                .orElseThrow(() -> new NotFoundException("Sessão", id));
     }
 
     private Instant now() {

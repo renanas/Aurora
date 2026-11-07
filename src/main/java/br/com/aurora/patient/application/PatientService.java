@@ -5,6 +5,7 @@ import br.com.aurora.patient.api.PatientPriceChanged;
 import br.com.aurora.patient.domain.Patient;
 import br.com.aurora.patient.persistence.PatientRepository;
 import br.com.aurora.shared.error.NotFoundException;
+import br.com.aurora.shared.security.CurrentPsychologist;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -22,16 +23,19 @@ public class PatientService {
     private final PatientRepository repository;
     private final ApplicationEventPublisher events;
     private final Clock clock;
+    private final CurrentPsychologist current;
 
-    public PatientService(PatientRepository repository, ApplicationEventPublisher events, Clock clock) {
+    public PatientService(PatientRepository repository, ApplicationEventPublisher events, Clock clock,
+            CurrentPsychologist current) {
         this.repository = repository;
         this.events = events;
         this.clock = clock;
+        this.current = current;
     }
 
     @Transactional(readOnly = true)
     public List<PatientDetails> list(String search, boolean active) {
-        return repository.searchByName(active, toLikePattern(search)).stream()
+        return repository.searchByName(current.id(), active, toLikePattern(search)).stream()
                 .map(PatientDetails::from)
                 .toList();
     }
@@ -43,7 +47,7 @@ public class PatientService {
 
     @Transactional
     public PatientDetails create(String name, String whatsapp, BigDecimal sessionPrice) {
-        Patient patient = new Patient(name, whatsapp, sessionPrice, now());
+        Patient patient = new Patient(current.id(), name, whatsapp, sessionPrice, now());
         return PatientDetails.from(repository.save(patient));
     }
 
@@ -92,7 +96,8 @@ public class PatientService {
     }
 
     private Patient find(UUID id) {
-        return repository.findById(id).orElseThrow(() -> new NotFoundException("Paciente", id));
+        return repository.findByIdAndPsychologistId(id, current.id())
+                .orElseThrow(() -> new NotFoundException("Paciente", id));
     }
 
     private Instant now() {

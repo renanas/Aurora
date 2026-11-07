@@ -4,6 +4,7 @@ import br.com.aurora.scheduling.domain.CancellationType;
 import br.com.aurora.scheduling.domain.TherapySession;
 import br.com.aurora.scheduling.persistence.TherapySessionRepository;
 import br.com.aurora.shared.error.NotFoundException;
+import br.com.aurora.shared.security.CurrentPsychologist;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
@@ -21,11 +22,14 @@ public class SessionActionService {
     private final TherapySessionRepository sessions;
     private final SessionQueryService query;
     private final Clock clock;
+    private final CurrentPsychologist current;
 
-    public SessionActionService(TherapySessionRepository sessions, SessionQueryService query, Clock clock) {
+    public SessionActionService(TherapySessionRepository sessions, SessionQueryService query, Clock clock,
+            CurrentPsychologist current) {
         this.sessions = sessions;
         this.query = query;
         this.clock = clock;
+        this.current = current;
     }
 
     @Transactional
@@ -66,7 +70,8 @@ public class SessionActionService {
     }
 
     private TherapySession load(UUID id) {
-        return sessions.findById(id).orElseThrow(() -> new NotFoundException("Sessão", id));
+        return sessions.findByIdAndPsychologistId(id, current.id())
+                .orElseThrow(() -> new NotFoundException("Sessão", id));
     }
 
     private Instant now() {

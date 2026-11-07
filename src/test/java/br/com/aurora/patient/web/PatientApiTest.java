@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import br.com.aurora.TestPsychologistConfig;
 import br.com.aurora.TestcontainersConfig;
 import br.com.aurora.patient.api.PatientDeactivated;
 import br.com.aurora.patient.api.PatientPriceChanged;
@@ -31,7 +32,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 /** API completa contra PostgreSQL real: validação, busca sem acento, inativação, eventos. */
 @SpringBootTest
-@Import(TestcontainersConfig.class)
+@Import({TestcontainersConfig.class, TestPsychologistConfig.class})
 @RecordApplicationEvents
 class PatientApiTest {
 

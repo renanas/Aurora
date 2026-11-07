@@ -59,7 +59,7 @@ public class SessionGenerator {
             return 0;
         }
 
-        Optional<PatientInfo> patient = patients.find(recurrence.getPatientId());
+        Optional<PatientInfo> patient = patients.find(recurrence.getPsychologistId(), recurrence.getPatientId());
         if (patient.isEmpty() || !patient.get().active()) {
             return 0;
         }
@@ -71,7 +71,7 @@ public class SessionGenerator {
         List<TherapySession> created = dates.stream()
                 .filter(date -> !existing.contains(date))
                 .map(date -> TherapySession.generated(
-                        recurrence.getPatientId(), recurrence.getId(), date,
+                        recurrence.getPsychologistId(), recurrence.getPatientId(), recurrence.getId(), date,
                         date.atTime(recurrence.getStartTime()), patient.get().sessionPrice(), now))
                 .toList();
         sessions.saveAll(created);

@@ -11,11 +11,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class TherapySessionTest {
+    private static final UUID OWNER = UUID.randomUUID();
+
 
     private static final Instant NOW = Instant.parse("2026-09-20T12:00:00Z");
 
     private TherapySession generated() {
-        return TherapySession.generated(UUID.randomUUID(), UUID.randomUUID(), LocalDate.of(2026, 9, 28),
+        return TherapySession.generated(OWNER, UUID.randomUUID(), UUID.randomUUID(), LocalDate.of(2026, 9, 28),
                 LocalDateTime.of(2026, 9, 28, 9, 0), new BigDecimal("180.00"), NOW);
     }
 

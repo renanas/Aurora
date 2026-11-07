@@ -11,11 +11,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class RecurrenceTest {
+    private static final UUID OWNER = UUID.randomUUID();
+
 
     private static final LocalDate ANCHOR = LocalDate.of(2026, 9, 28);
 
     private Recurrence weeklyAtNine() {
-        return new Recurrence(UUID.randomUUID(), ANCHOR, LocalTime.of(9, 0), Frequency.WEEKLY,
+        return new Recurrence(OWNER, UUID.randomUUID(), ANCHOR, LocalTime.of(9, 0), Frequency.WEEKLY,
                 Instant.parse("2026-09-20T12:00:00Z"));
     }
 
@@ -51,5 +53,14 @@ class RecurrenceTest {
         assertThat(r.hasSameSchedule(ANCHOR.plusDays(7), LocalTime.of(9, 0), Frequency.WEEKLY)).isFalse();
         assertThat(r.hasSameSchedule(ANCHOR, LocalTime.of(10, 0), Frequency.WEEKLY)).isFalse();
         assertThat(r.hasSameSchedule(ANCHOR, LocalTime.of(9, 0), Frequency.BIWEEKLY)).isFalse();
+    }
+
+    @Test
+    @DisplayName("a recorrência guarda a psicóloga dona e não existe sem ela")
+    void keepsTheOwner() {
+        assertThat(weeklyAtNine().getPsychologistId()).isEqualTo(OWNER);
+        assertThatThrownBy(() -> new Recurrence(null, UUID.randomUUID(), ANCHOR, LocalTime.of(9, 0),
+                Frequency.WEEKLY, Instant.parse("2026-09-20T12:00:00Z")))
+                .isInstanceOf(NullPointerException.class);
     }
 }
