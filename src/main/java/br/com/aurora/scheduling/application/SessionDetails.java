@@ -25,22 +25,22 @@ public record SessionDetails(
         UUID rescheduledFromId,
         List<UUID> overlapsWith) {
 
-    static SessionDetails from(TherapySession s, String patientName, List<UUID> overlapsWith) {
+    static SessionDetails from(TherapySession session, String patientName, List<UUID> overlapsWith) {
         return new SessionDetails(
-                s.getId(),
-                s.getPatientId(),
+                session.getId(),
+                session.getPatientId(),
                 patientName,
-                s.getStartsAt(),
-                s.endsAt(),
-                s.getDurationMinutes(),
-                s.getStatus().name(),
-                s.getCancellationType() == null ? null : s.getCancellationType().name(),
-                s.getPaymentStatus().name(),
-                s.getPaidAt() == null ? null : LocalDateTime.ofInstant(s.getPaidAt(), SystemConstants.ZONE),
-                s.getAmount(),
-                s.isBillable(),
-                s.getRecurrenceId(),
-                s.getRescheduledFromId(),
+                session.getStartsAt(),
+                session.endsAt(),
+                session.getDurationMinutes(),
+                session.getStatus().name(),
+                session.getCancellationType() == null ? null : session.getCancellationType().name(),
+                session.getPaymentStatus().name(),
+                session.getPaidAt() == null ? null : LocalDateTime.ofInstant(session.getPaidAt(), SystemConstants.ZONE),
+                session.getAmount(),
+                session.isBillable(),
+                session.getRecurrenceId(),
+                session.getRescheduledFromId(),
                 overlapsWith);
     }
 }

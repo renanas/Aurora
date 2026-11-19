@@ -105,10 +105,10 @@ class AuthApiTest {
         List<String> cookies = result.getResponse().getHeaders("Set-Cookie");
         String prefix = "XSRF-TOKEN=";
         return cookies.stream()
-                .filter(c -> c.startsWith(prefix))
-                .map(c -> {
-                    int end = c.indexOf(';');
-                    return c.substring(prefix.length(), end < 0 ? c.length() : end);
+                .filter(cookieHeader -> cookieHeader.startsWith(prefix))
+                .map(cookieHeader -> {
+                    int end = cookieHeader.indexOf(';');
+                    return cookieHeader.substring(prefix.length(), end < 0 ? cookieHeader.length() : end);
                 })
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("o servidor não enviou o cookie XSRF-TOKEN"));
@@ -144,7 +144,7 @@ class AuthApiTest {
         MvcResult result = mvc.perform(get("/api/auth/me")).andExpect(status().isUnauthorized()).andReturn();
 
         assertThat(result.getResponse().getHeaders("Set-Cookie"))
-                .anyMatch(c -> c.startsWith("XSRF-TOKEN="));
+                .anyMatch(cookieHeader -> cookieHeader.startsWith("XSRF-TOKEN="));
     }
 
     @Test

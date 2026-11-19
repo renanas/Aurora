@@ -1,13 +1,14 @@
 package br.com.aurora.auth.web;
 
 import br.com.aurora.auth.application.AccountService;
-import br.com.aurora.auth.application.AccountState;
 import br.com.aurora.auth.application.AuroraUserDetails;
 import jakarta.validation.Valid;
+import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -29,11 +30,23 @@ public class AuthController {
         this.accounts = accounts;
     }
 
+    /** Lido do banco a cada chamada: nome e e-mail podem ter mudado depois do login. */
     @GetMapping("/me")
     public MeResponse me(Authentication authentication) {
-        AuroraUserDetails user = (AuroraUserDetails) authentication.getPrincipal();
-        boolean mustChange = accounts.state(user.id()).map(AccountState::mustChangePassword).orElse(false);
-        return new MeResponse(user.getUsername(), user.displayName(), user.roleName(), mustChange);
+        return MeResponse.from(accounts.ownAccount(loggedUserId(authentication)));
+    }
+
+    /** Troca o nome que aparece no cabeçalho. */
+    @PutMapping("/profile")
+    public MeResponse changeName(@Valid @RequestBody ChangeNameRequest request, Authentication authentication) {
+        return MeResponse.from(accounts.changeOwnName(loggedUserId(authentication), request.displayName()));
+    }
+
+    /** Troca o e-mail (o login). Pede a senha atual. */
+    @PutMapping("/email")
+    public MeResponse changeEmail(@Valid @RequestBody ChangeEmailRequest request, Authentication authentication) {
+        return MeResponse.from(accounts.changeOwnEmail(
+                loggedUserId(authentication), request.email(), request.currentPassword()));
     }
 
     /**
@@ -49,7 +62,10 @@ public class AuthController {
     @PostMapping("/password")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void changePassword(@Valid @RequestBody ChangePasswordRequest request, Authentication authentication) {
-        AuroraUserDetails user = (AuroraUserDetails) authentication.getPrincipal();
-        accounts.changeOwnPassword(user.id(), request.currentPassword(), request.newPassword());
+        accounts.changeOwnPassword(loggedUserId(authentication), request.currentPassword(), request.newPassword());
+    }
+
+    private static UUID loggedUserId(Authentication authentication) {
+        return ((AuroraUserDetails) authentication.getPrincipal()).id();
     }
 }

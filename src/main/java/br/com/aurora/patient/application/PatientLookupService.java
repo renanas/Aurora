@@ -40,7 +40,7 @@ public class PatientLookupService implements PatientLookup {
         return result;
     }
 
-    private static PatientInfo toInfo(Patient p) {
-        return new PatientInfo(p.getId(), p.getName(), p.getSessionPrice(), p.isActive());
+    private static PatientInfo toInfo(Patient patient) {
+        return new PatientInfo(patient.getId(), patient.getName(), patient.getSessionPrice(), patient.isActive());
     }
 }

@@ -85,9 +85,9 @@ class SchemaConstraintsTest {
     @Test
     @DisplayName("sessões no mesmo horário são permitidas (conflito é aviso, não bloqueio)")
     void overlappingSessionsAreAllowed() {
-        UUID p = patient();
-        session(p, NINE);
-        session(p, NINE);
+        UUID patientId = patient();
+        session(patientId, NINE);
+        session(patientId, NINE);
 
         Integer total = jdbc.queryForObject("SELECT count(*) FROM therapy_session", Integer.class);
         assertThat(total).isEqualTo(2);
@@ -96,20 +96,20 @@ class SchemaConstraintsTest {
     @Test
     @DisplayName("um paciente não pode ter duas recorrências ativas")
     void onlyOneActiveRecurrencePerPatient() {
-        UUID p = patient();
-        recurrence(p, null);
+        UUID patientId = patient();
+        recurrence(patientId, null);
 
-        assertThatThrownBy(() -> recurrence(p, null))
+        assertThatThrownBy(() -> recurrence(patientId, null))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     @DisplayName("recorrência encerrada não impede uma nova ativa")
     void endedRecurrenceAllowsNewActiveOne() {
-        UUID p = patient();
-        recurrence(p, LocalDate.of(2026, 12, 14));
+        UUID patientId = patient();
+        recurrence(patientId, LocalDate.of(2026, 12, 14));
 
-        UUID second = recurrence(p, null);
+        UUID second = recurrence(patientId, null);
 
         assertThat(second).isNotNull();
     }
@@ -117,45 +117,45 @@ class SchemaConstraintsTest {
     @Test
     @DisplayName("a mesma ocorrência não pode ser gerada duas vezes (idempotência)")
     void sameOccurrenceCannotBeGeneratedTwice() {
-        UUID p = patient();
-        UUID r = recurrence(p, null);
+        UUID patientId = patient();
+        UUID recurrenceId = recurrence(patientId, null);
         String sql = "INSERT INTO therapy_session (psychologist_id, patient_id, recurrence_id, occurrence_date, starts_at, amount) "
                 + "VALUES ('" + OWNER + "', ?, ?, '2026-09-28', '2026-09-28 09:00', 180)";
-        jdbc.update(sql, p, r);
+        jdbc.update(sql, patientId, recurrenceId);
 
-        assertThatThrownBy(() -> jdbc.update(sql, p, r))
+        assertThatThrownBy(() -> jdbc.update(sql, patientId, recurrenceId))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     @DisplayName("cancelar exige o tipo de cancelamento")
     void cancelledRequiresCancellationType() {
-        UUID p = patient();
+        UUID patientId = patient();
 
         assertThatThrownBy(() -> jdbc.update(
                 "INSERT INTO therapy_session (psychologist_id, patient_id, starts_at, amount, status) "
-                        + "VALUES ('" + OWNER + "', ?, ?, 180, 'CANCELLED')", p, NINE))
+                        + "VALUES ('" + OWNER + "', ?, ?, 180, 'CANCELLED')", patientId, NINE))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     @DisplayName("tipo de cancelamento só existe em sessão cancelada")
     void cancellationTypeOnlyWhenCancelled() {
-        UUID p = patient();
+        UUID patientId = patient();
 
         assertThatThrownBy(() -> jdbc.update(
                 "INSERT INTO therapy_session (psychologist_id, patient_id, starts_at, amount, status, cancellation_type) "
-                        + "VALUES ('" + OWNER + "', ?, ?, 180, 'SCHEDULED', 'LATE')", p, NINE))
+                        + "VALUES ('" + OWNER + "', ?, ?, 180, 'SCHEDULED', 'LATE')", patientId, NINE))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     @DisplayName("uma falta pode estar paga: status e pagamento são independentes")
     void noShowCanBePaid() {
-        UUID p = patient();
+        UUID patientId = patient();
 
         jdbc.update("INSERT INTO therapy_session (psychologist_id, patient_id, starts_at, amount, status, payment_status, paid_at) "
-                + "VALUES ('" + OWNER + "', ?, ?, 180, 'NO_SHOW', 'PAID', now())", p, NINE);
+                + "VALUES ('" + OWNER + "', ?, ?, 180, 'NO_SHOW', 'PAID', now())", patientId, NINE);
 
         String status = jdbc.queryForObject("SELECT status FROM therapy_session", String.class);
         String payment = jdbc.queryForObject("SELECT payment_status FROM therapy_session", String.class);
@@ -166,33 +166,33 @@ class SchemaConstraintsTest {
     @Test
     @DisplayName("pago exige data de pagamento")
     void paidRequiresPaidAt() {
-        UUID p = patient();
+        UUID patientId = patient();
 
         assertThatThrownBy(() -> jdbc.update(
                 "INSERT INTO therapy_session (psychologist_id, patient_id, starts_at, amount, payment_status) "
-                        + "VALUES ('" + OWNER + "', ?, ?, 180, 'PAID')", p, NINE))
+                        + "VALUES ('" + OWNER + "', ?, ?, 180, 'PAID')", patientId, NINE))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     @DisplayName("uma sessão original só pode ter um reagendamento vigente")
     void onlyOneLiveRescheduleAllowed() {
-        UUID p = patient();
-        UUID original = session(p, NINE);
-        rescheduledSession(p, original, "SCHEDULED");
+        UUID patientId = patient();
+        UUID original = session(patientId, NINE);
+        rescheduledSession(patientId, original, "SCHEDULED");
 
-        assertThatThrownBy(() -> rescheduledSession(p, original, "SCHEDULED"))
+        assertThatThrownBy(() -> rescheduledSession(patientId, original, "SCHEDULED"))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     @DisplayName("reagendamento cancelado (desfeito) não impede um novo reagendamento")
     void cancelledRescheduleDoesNotBlockNewOne() {
-        UUID p = patient();
-        UUID original = session(p, NINE);
-        rescheduledSession(p, original, "CANCELLED");
+        UUID patientId = patient();
+        UUID original = session(patientId, NINE);
+        rescheduledSession(patientId, original, "CANCELLED");
 
-        UUID second = rescheduledSession(p, original, "SCHEDULED");
+        UUID second = rescheduledSession(patientId, original, "SCHEDULED");
 
         assertThat(second).isNotNull();
     }

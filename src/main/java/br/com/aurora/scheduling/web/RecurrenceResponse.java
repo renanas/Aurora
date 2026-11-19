@@ -7,13 +7,13 @@ import java.util.UUID;
 public record RecurrenceResponse(UUID id, String anchorDate, String startTime, String frequency, String endsOn,
         boolean active) {
 
-    static RecurrenceResponse from(RecurrenceDetails d) {
+    static RecurrenceResponse from(RecurrenceDetails details) {
         return new RecurrenceResponse(
-                d.id(),
-                d.anchorDate().toString(),
-                d.startTime().toString().substring(0, 5),
-                d.frequency(),
-                d.endsOn() == null ? null : d.endsOn().toString(),
-                d.endsOn() == null);
+                details.id(),
+                details.anchorDate().toString(),
+                details.startTime().toString().substring(0, 5),
+                details.frequency(),
+                details.endsOn() == null ? null : details.endsOn().toString(),
+                details.endsOn() == null);
     }
 }

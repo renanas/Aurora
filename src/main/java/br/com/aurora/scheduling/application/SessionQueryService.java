@@ -62,16 +62,16 @@ public class SessionQueryService {
         Map<UUID, PatientInfo> names = patients.findAllById(current.id(), patientIds);
 
         List<OverlapPolicy.Slot> slots = universe.stream()
-                .filter(s -> s.getStatus().occupiesSlot())
-                .map(s -> new OverlapPolicy.Slot(s.getId(), s.getStartsAt(), s.endsAt()))
+                .filter(session -> session.getStatus().occupiesSlot())
+                .map(session -> new OverlapPolicy.Slot(session.getId(), session.getStartsAt(), session.endsAt()))
                 .toList();
         Map<UUID, List<UUID>> overlaps = OverlapPolicy.overlapsBySlot(slots);
 
         return targets.stream()
-                .map(s -> SessionDetails.from(
-                        s,
-                        names.containsKey(s.getPatientId()) ? names.get(s.getPatientId()).name() : "",
-                        overlaps.getOrDefault(s.getId(), List.of())))
+                .map(session -> SessionDetails.from(
+                        session,
+                        names.containsKey(session.getPatientId()) ? names.get(session.getPatientId()).name() : "",
+                        overlaps.getOrDefault(session.getId(), List.of())))
                 .toList();
     }
 }

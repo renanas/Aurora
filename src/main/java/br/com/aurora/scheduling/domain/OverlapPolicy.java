@@ -29,12 +29,12 @@ public final class OverlapPolicy {
     public static Map<UUID, List<UUID>> overlapsBySlot(List<Slot> slots) {
         Map<UUID, List<UUID>> result = new HashMap<>();
         for (int i = 0; i < slots.size(); i++) {
-            Slot a = slots.get(i);
+            Slot firstSlot = slots.get(i);
             for (int j = i + 1; j < slots.size(); j++) {
-                Slot b = slots.get(j);
-                if (overlaps(a.start(), a.end(), b.start(), b.end())) {
-                    result.computeIfAbsent(a.id(), k -> new ArrayList<>()).add(b.id());
-                    result.computeIfAbsent(b.id(), k -> new ArrayList<>()).add(a.id());
+                Slot secondSlot = slots.get(j);
+                if (overlaps(firstSlot.start(), firstSlot.end(), secondSlot.start(), secondSlot.end())) {
+                    result.computeIfAbsent(firstSlot.id(), slotId -> new ArrayList<>()).add(secondSlot.id());
+                    result.computeIfAbsent(secondSlot.id(), slotId -> new ArrayList<>()).add(firstSlot.id());
                 }
             }
         }

@@ -24,26 +24,26 @@ class TherapySessionTest {
     @Test
     @DisplayName("sessão gerada nasce agendada, pendente, com 50 minutos e terminando 50 minutos depois")
     void generatedDefaults() {
-        TherapySession s = generated();
+        TherapySession session = generated();
 
-        assertThat(s.getStatus()).isEqualTo(SessionStatus.SCHEDULED);
-        assertThat(s.getPaymentStatus()).isEqualTo(PaymentStatus.PENDING);
-        assertThat(s.getCancellationType()).isNull();
-        assertThat(s.getDurationMinutes()).isEqualTo(50);
-        assertThat(s.endsAt()).isEqualTo(LocalDateTime.of(2026, 9, 28, 9, 50));
-        assertThat(s.getRescheduledFromId()).isNull();
-        assertThat(s.isBillable()).isTrue();
+        assertThat(session.getStatus()).isEqualTo(SessionStatus.SCHEDULED);
+        assertThat(session.getPaymentStatus()).isEqualTo(PaymentStatus.PENDING);
+        assertThat(session.getCancellationType()).isNull();
+        assertThat(session.getDurationMinutes()).isEqualTo(50);
+        assertThat(session.endsAt()).isEqualTo(LocalDateTime.of(2026, 9, 28, 9, 50));
+        assertThat(session.getRescheduledFromId()).isNull();
+        assertThat(session.isBillable()).isTrue();
     }
 
     @Test
     @DisplayName("mudar o valor atualiza só o valor")
     void changeAmount() {
-        TherapySession s = generated();
+        TherapySession session = generated();
 
-        s.changeAmount(new BigDecimal("200.00"), NOW.plusSeconds(60));
+        session.changeAmount(new BigDecimal("200.00"), NOW.plusSeconds(60));
 
-        assertThat(s.getAmount()).isEqualByComparingTo("200.00");
-        assertThat(s.getStatus()).isEqualTo(SessionStatus.SCHEDULED);
+        assertThat(session.getAmount()).isEqualByComparingTo("200.00");
+        assertThat(session.getStatus()).isEqualTo(SessionStatus.SCHEDULED);
     }
 
     @Test

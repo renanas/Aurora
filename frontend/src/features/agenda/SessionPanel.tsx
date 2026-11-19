@@ -25,7 +25,7 @@ export function SessionPanel({
   onClose: () => void;
 }) {
   const startDate = parseDateString(dateOf(session.startsAt));
-  const conflicts = session.overlapsWith.map((id) => all.find((s) => s.id === id));
+  const conflicts = session.overlapsWith.map((id) => all.find((otherSession) => otherSession.id === id));
   const [mode, setMode] = useState<Mode>('none');
   const mutation = useSessionAction();
   const busy = mutation.isPending;
@@ -35,7 +35,7 @@ export function SessionPanel({
   const canUndoReschedule = session.rescheduledFromId !== null && session.status === 'SCHEDULED';
   const movedTo =
     session.status === 'RESCHEDULED'
-      ? all.find((s) => s.rescheduledFromId === session.id && s.status !== 'CANCELLED')
+      ? all.find((otherSession) => otherSession.rescheduledFromId === session.id && otherSession.status !== 'CANCELLED')
       : undefined;
   const isPaid = session.paymentStatus === 'PAID';
   const showPayment = session.billable || isPaid;
@@ -118,8 +118,8 @@ export function SessionPanel({
           <div className="mt-5 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
             <p className="font-medium">Conflito de horário com:</p>
             <ul className="mt-1 list-disc pl-5">
-              {conflicts.map((c, i) => (
-                <li key={c?.id ?? i}>{c ? `${c.patientName} (${timeOf(c.startsAt)})` : 'outra sessão'}</li>
+              {conflicts.map((conflict, conflictIndex) => (
+                <li key={conflict?.id ?? conflictIndex}>{conflict ? `${conflict.patientName} (${timeOf(conflict.startsAt)})` : 'outra sessão'}</li>
               ))}
             </ul>
           </div>
@@ -320,11 +320,11 @@ function DateTimeFields({
     <div className="mt-3 grid grid-cols-2 gap-3">
       <label className="text-sm text-slate-700">
         Data
-        <input type="date" value={date} onChange={(ev) => onDate(ev.target.value)} className={field} />
+        <input type="date" value={date} onChange={(event) => onDate(event.target.value)} className={field} />
       </label>
       <label className="text-sm text-slate-700">
         Horário
-        <input type="time" value={time} onChange={(ev) => onTime(ev.target.value)} className={field} />
+        <input type="time" value={time} onChange={(event) => onTime(event.target.value)} className={field} />
       </label>
     </div>
   );
@@ -386,13 +386,13 @@ export function NewSessionPanel({
           Paciente
           <select
             value={patientId}
-            onChange={(ev) => setPatientId(ev.target.value)}
+            onChange={(event) => setPatientId(event.target.value)}
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"
           >
             <option value="">Escolha o paciente</option>
-            {(patients.data ?? []).map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
+            {(patients.data ?? []).map((patient) => (
+              <option key={patient.id} value={patient.id}>
+                {patient.name}
               </option>
             ))}
           </select>

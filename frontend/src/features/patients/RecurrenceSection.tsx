@@ -74,9 +74,9 @@ export default function RecurrenceSection({ patientId, patientActive }: Props) {
       setEditing(false)
     } catch (error) {
       if (error instanceof ApiError) {
-        for (const fe of error.fieldErrors) {
-          if (fe.field === 'anchorDate' || fe.field === 'startTime' || fe.field === 'frequency') {
-            setError(fe.field, { message: fe.message })
+        for (const fieldError of error.fieldErrors) {
+          if (fieldError.field === 'anchorDate' || fieldError.field === 'startTime' || fieldError.field === 'frequency') {
+            setError(fieldError.field, { message: fieldError.message })
           }
         }
       }
@@ -176,7 +176,7 @@ export default function RecurrenceSection({ patientId, patientActive }: Props) {
               className={inputClass}
               {...register('anchorDate', {
                 required: 'Informe a data.',
-                validate: (v) => parseDateString(v) !== null || 'Data inválida.',
+                validate: (value) => parseDateString(value) !== null || 'Data inválida.',
               })}
             />
             {chosenDate && <p className="mt-1 text-base text-slate-600">Cai em {weekdayFull(chosenDate)}.</p>}

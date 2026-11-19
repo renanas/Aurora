@@ -117,6 +117,48 @@ public class AccountService {
         user.changePassword(encoder.encode(newPassword));
     }
 
+    /** Dados atuais da própria conta (o nome e o e-mail podem ter mudado depois do login). */
+    @Transactional(readOnly = true)
+    public AccountDetails ownAccount(UUID id) {
+        return AccountDetails.from(users.findById(id).orElseThrow(() -> new NotFoundException("Conta", id)));
+    }
+
+    @Transactional
+    public AccountDetails changeOwnName(UUID id, String newDisplayName) {
+        AppUser user = users.findById(id).orElseThrow(() -> new NotFoundException("Conta", id));
+        try {
+            user.rename(newDisplayName);
+        } catch (IllegalArgumentException invalidName) {
+            throw new BusinessRuleException("INVALID_ACCOUNT_DATA", invalidName.getMessage());
+        }
+        return AccountDetails.from(user);
+    }
+
+    /**
+     * Troca o e-mail (o login) da própria conta. Pede a senha atual, porque quem pegar o tablet desbloqueado
+     * não deve conseguir tomar a conta. O mesmo e-mail de antes não muda nada.
+     */
+    @Transactional
+    public AccountDetails changeOwnEmail(UUID id, String newEmail, String currentPassword) {
+        AppUser user = users.findById(id).orElseThrow(() -> new NotFoundException("Conta", id));
+        if (!encoder.matches(currentPassword, user.passwordHash())) {
+            throw new BusinessRuleException("WRONG_CURRENT_PASSWORD", "A senha atual está incorreta.");
+        }
+        String normalizedEmail = AppUser.normalizeEmail(newEmail);
+        if (normalizedEmail.equals(user.email())) {
+            return AccountDetails.from(user);
+        }
+        if (users.existsByEmail(normalizedEmail)) {
+            throw new BusinessRuleException("EMAIL_ALREADY_REGISTERED", "Já existe uma conta com este e-mail.");
+        }
+        try {
+            user.changeEmail(normalizedEmail);
+        } catch (IllegalArgumentException invalidEmail) {
+            throw new BusinessRuleException("INVALID_ACCOUNT_DATA", invalidEmail.getMessage());
+        }
+        return AccountDetails.from(user);
+    }
+
     /** Estado atual da conta; vazio se ela não existe mais. Consultado a cada requisição de quem está logada. */
     @Transactional(readOnly = true)
     public Optional<AccountState> state(UUID id) {

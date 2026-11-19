@@ -24,13 +24,13 @@ class PatientTest {
     @Test
     @DisplayName("novo paciente nasce ativo, com nome aparado, WhatsApp só com dígitos e prefixo 55 e valor com 2 casas")
     void newPatientIsNormalized() {
-        Patient p = maria();
+        Patient patient = maria();
 
-        assertThat(p.getName()).isEqualTo("Maria Silva");
-        assertThat(p.getWhatsapp()).isEqualTo("5511999998888");
-        assertThat(p.getSessionPrice()).isEqualByComparingTo("180.00");
-        assertThat(p.getSessionPrice().scale()).isEqualTo(2);
-        assertThat(p.isActive()).isTrue();
+        assertThat(patient.getName()).isEqualTo("Maria Silva");
+        assertThat(patient.getWhatsapp()).isEqualTo("5511999998888");
+        assertThat(patient.getSessionPrice()).isEqualByComparingTo("180.00");
+        assertThat(patient.getSessionPrice().scale()).isEqualTo(2);
+        assertThat(patient.isActive()).isTrue();
     }
 
     @Test
@@ -47,38 +47,38 @@ class PatientTest {
     @Test
     @DisplayName("update informa se o valor mudou: mesmo valor com outra escala não conta como mudança")
     void updateReportsPriceChange() {
-        Patient p = maria();
+        Patient patient = maria();
 
-        assertThat(p.update("Maria S.", "11999998888", new BigDecimal("180.00"), T2)).isFalse();
-        assertThat(p.getName()).isEqualTo("Maria S.");
-        assertThat(p.update("Maria S.", "11999998888", new BigDecimal("200"), T2)).isTrue();
-        assertThat(p.getSessionPrice()).isEqualByComparingTo("200.00");
+        assertThat(patient.update("Maria S.", "11999998888", new BigDecimal("180.00"), T2)).isFalse();
+        assertThat(patient.getName()).isEqualTo("Maria S.");
+        assertThat(patient.update("Maria S.", "11999998888", new BigDecimal("200"), T2)).isTrue();
+        assertThat(patient.getSessionPrice()).isEqualByComparingTo("200.00");
     }
 
     @Test
     @DisplayName("update inválido não altera nada")
     void invalidUpdateChangesNothing() {
-        Patient p = maria();
+        Patient patient = maria();
 
-        assertThatThrownBy(() -> p.update("Outro Nome", "123", new BigDecimal("999"), T2))
+        assertThatThrownBy(() -> patient.update("Outro Nome", "123", new BigDecimal("999"), T2))
                 .isInstanceOf(BusinessRuleException.class);
 
-        assertThat(p.getName()).isEqualTo("Maria Silva");
-        assertThat(p.getSessionPrice()).isEqualByComparingTo("180.00");
+        assertThat(patient.getName()).isEqualTo("Maria Silva");
+        assertThat(patient.getSessionPrice()).isEqualByComparingTo("180.00");
     }
 
     @Test
     @DisplayName("inativar e reativar são idempotentes e dizem se houve mudança")
     void deactivateAndActivateAreIdempotent() {
-        Patient p = maria();
+        Patient patient = maria();
 
-        assertThat(p.deactivate(T2)).isTrue();
-        assertThat(p.deactivate(T2)).isFalse();
-        assertThat(p.isActive()).isFalse();
+        assertThat(patient.deactivate(T2)).isTrue();
+        assertThat(patient.deactivate(T2)).isFalse();
+        assertThat(patient.isActive()).isFalse();
 
-        assertThat(p.activate(T2)).isTrue();
-        assertThat(p.activate(T2)).isFalse();
-        assertThat(p.isActive()).isTrue();
+        assertThat(patient.activate(T2)).isTrue();
+        assertThat(patient.activate(T2)).isFalse();
+        assertThat(patient.isActive()).isTrue();
     }
 
     @Test
@@ -92,10 +92,10 @@ class PatientTest {
     @Test
     @DisplayName("atualizar os dados não muda a dona")
     void updateKeepsTheOwner() {
-        Patient p = maria();
+        Patient patient = maria();
 
-        p.update("Maria Souza", "11988887777", new BigDecimal("200"), T2);
+        patient.update("Maria Souza", "11988887777", new BigDecimal("200"), T2);
 
-        assertThat(p.getPsychologistId()).isEqualTo(OWNER);
+        assertThat(patient.getPsychologistId()).isEqualTo(OWNER);
     }
 }

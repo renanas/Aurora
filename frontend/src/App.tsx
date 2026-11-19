@@ -3,11 +3,11 @@ import AccountsPage from './features/accounts/AccountsPage'
 import AgendaPage from './features/agenda/AgendaPage'
 import { useMe } from './features/auth/api'
 import AuthGate from './features/auth/AuthGate'
-import ChangePasswordPage from './features/auth/ChangePasswordPage'
-import CurrentUserName from './features/auth/CurrentUserName'
-import LogoutButton from './features/auth/LogoutButton'
+import EarningsPage from './features/earnings/EarningsPage'
+import UserMenu from './features/auth/UserMenu'
 import PatientsPage from './features/patients/PatientsPage'
 import PatientFormPage from './features/patients/PatientFormPage'
+import SettingsPage from './features/settings/SettingsPage'
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `rounded-lg px-3 py-2 ${isActive ? 'bg-indigo-50 font-medium text-indigo-700' : 'text-slate-600'}`
@@ -22,13 +22,13 @@ function NarrowLayout() {
 }
 
 function Layout() {
-  const me = useMe()
-  const isAdmin = me.data?.role === 'ADMIN'
+  const loggedUserQuery = useMe()
+  const isAdmin = loggedUserQuery.data?.role === 'ADMIN'
 
   return (
     <div className="min-h-screen">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-y-2 px-4 py-3">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
           <Link to="/agenda" className="text-xl font-semibold text-indigo-700">
             Aurora
           </Link>
@@ -39,17 +39,11 @@ function Layout() {
             <NavLink to="/patients" className={navClass}>
               Pacientes
             </NavLink>
-            {isAdmin && (
-              <NavLink to="/accounts" className={navClass}>
-                Contas
-              </NavLink>
-            )}
-            <NavLink to="/password" className={navClass}>
-              Senha
+            <NavLink to="/ganhos" className={navClass}>
+              Ganhos
             </NavLink>
-            <CurrentUserName />
-            <LogoutButton />
           </nav>
+          <UserMenu />
         </div>
       </header>
 
@@ -57,6 +51,7 @@ function Layout() {
         <Routes>
           <Route path="/" element={<Navigate to="/agenda" replace />} />
           <Route path="/agenda" element={<AgendaPage />} />
+          <Route path="/ganhos" element={<EarningsPage />} />
           <Route element={<NarrowLayout />}>
             <Route path="/patients" element={<PatientsPage />} />
             <Route path="/patients/new" element={<PatientFormPage />} />
@@ -65,7 +60,8 @@ function Layout() {
               path="/accounts"
               element={isAdmin ? <AccountsPage /> : <Navigate to="/agenda" replace />}
             />
-            <Route path="/password" element={<ChangePasswordPage />} />
+            <Route path="/configuracoes" element={<SettingsPage />} />
+            <Route path="/password" element={<Navigate to="/configuracoes" replace />} />
           </Route>
           <Route path="*" element={<Navigate to="/agenda" replace />} />
         </Routes>

@@ -32,7 +32,7 @@ export default function PatientsPage() {
       <input
         type="search"
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(event) => setText(event.target.value)}
         placeholder="Buscar por nome"
         aria-label="Buscar por nome"
         className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-lg"

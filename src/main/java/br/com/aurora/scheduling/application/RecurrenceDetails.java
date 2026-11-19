@@ -9,8 +9,8 @@ import java.util.UUID;
 public record RecurrenceDetails(UUID id, UUID patientId, LocalDate anchorDate, LocalTime startTime,
         String frequency, LocalDate endsOn) {
 
-    static RecurrenceDetails from(Recurrence r) {
-        return new RecurrenceDetails(r.getId(), r.getPatientId(), r.getAnchorDate(), r.getStartTime(),
-                r.getFrequency().name(), r.getEndsOn());
+    static RecurrenceDetails from(Recurrence recurrence) {
+        return new RecurrenceDetails(recurrence.getId(), recurrence.getPatientId(), recurrence.getAnchorDate(), recurrence.getStartTime(),
+                recurrence.getFrequency().name(), recurrence.getEndsOn());
     }
 }
