@@ -29,10 +29,10 @@ export function useRecurrence(patientId: string) {
   })
 }
 
-function useRecurrenceMutation<TVariables, TResult>(fn: (variables: TVariables) => Promise<TResult>) {
+function useRecurrenceMutation<TVariables, TResult>(mutationFunction: (variables: TVariables) => Promise<TResult>) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: fn,
+    mutationFn: mutationFunction,
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: RECURRENCE_KEY }),
@@ -53,10 +53,10 @@ export function useEndRecurrence(patientId: string) {
 }
 
 /** "Toda segunda às 09:00" ou "Quinzenal, segunda às 09:00" (o dia da semana vem da data da primeira sessão). */
-export function describeRecurrence(r: Recurrence): string {
-  const anchor = parseDateString(r.anchorDate)
+export function describeRecurrence(recurrence: Recurrence): string {
+  const anchor = parseDateString(recurrence.anchorDate)
   const day = anchor ? weekdayFull(anchor).replace('-feira', '') : ''
-  if (r.frequency === 'BIWEEKLY') return `Quinzenal, ${day} às ${r.startTime}`
+  if (recurrence.frequency === 'BIWEEKLY') return `Quinzenal, ${day} às ${recurrence.startTime}`
   const every = day === 'sábado' || day === 'domingo' ? 'Todo' : 'Toda'
-  return `${every} ${day} às ${r.startTime}`
+  return `${every} ${day} às ${recurrence.startTime}`
 }

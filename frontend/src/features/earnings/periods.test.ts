@@ -2,32 +2,32 @@ import { describe, expect, it } from 'vitest'
 import { toDateString } from '../../shared/lib/dates'
 import { barHeights, barLabel, periodFor, periodFromParams, periodLabel, periodToParams, shiftPeriod } from './periods'
 
-const day = (s: string) => {
-  const [y, m, d] = s.split('-').map(Number)
-  return new Date(y, m - 1, d)
+const day = (dateText: string) => {
+  const [year, month, dayOfMonth] = dateText.split('-').map(Number)
+  return new Date(year, month - 1, dayOfMonth)
 }
-const range = (p: { from: Date; to: Date }) => [toDateString(p.from), toDateString(p.to)]
+const range = (period: { from: Date; to: Date }) => [toDateString(period.from), toDateString(period.to)]
 
 describe('periodFor', () => {
   it('semana: segunda a domingo, barras por dia', () => {
-    const p = periodFor('week', day('2026-11-19')) // quinta
-    expect(range(p)).toEqual(['2026-11-16', '2026-11-22'])
-    expect(p.groupBy).toBe('DAY')
+    const period = periodFor('week', day('2026-11-19')) // quinta
+    expect(range(period)).toEqual(['2026-11-16', '2026-11-22'])
+    expect(period.groupBy).toBe('DAY')
   })
 
   it('mês: dia 1 ao último dia, barras por semana', () => {
-    const p = periodFor('month', day('2026-11-19'))
-    expect(range(p)).toEqual(['2026-11-01', '2026-11-30'])
-    expect(p.groupBy).toBe('WEEK')
+    const period = periodFor('month', day('2026-11-19'))
+    expect(range(period)).toEqual(['2026-11-01', '2026-11-30'])
+    expect(period.groupBy).toBe('WEEK')
     expect(range(periodFor('month', day('2028-02-10')))).toEqual(['2028-02-01', '2028-02-29'])
   })
 })
 
 describe('shiftPeriod', () => {
   it('anda de semana em semana', () => {
-    const p = periodFor('week', day('2026-11-19'))
-    expect(range(shiftPeriod(p, 1))).toEqual(['2026-11-23', '2026-11-29'])
-    expect(range(shiftPeriod(p, -1))).toEqual(['2026-11-09', '2026-11-15'])
+    const period = periodFor('week', day('2026-11-19'))
+    expect(range(shiftPeriod(period, 1))).toEqual(['2026-11-23', '2026-11-29'])
+    expect(range(shiftPeriod(period, -1))).toEqual(['2026-11-09', '2026-11-15'])
   })
 
   it('anda de mês em mês, inclusive na virada do ano', () => {
@@ -39,21 +39,21 @@ describe('shiftPeriod', () => {
 
 describe('URL', () => {
   it('sem parâmetros: semana de hoje', () => {
-    const p = periodFromParams(new URLSearchParams(''), day('2026-11-19'))
-    expect(p.view).toBe('week')
-    expect(range(p)).toEqual(['2026-11-16', '2026-11-22'])
+    const period = periodFromParams(new URLSearchParams(''), day('2026-11-19'))
+    expect(period.view).toBe('week')
+    expect(range(period)).toEqual(['2026-11-16', '2026-11-22'])
   })
 
   it('ida e volta pela URL', () => {
-    const p = periodFor('month', day('2026-11-19'))
-    const back = periodFromParams(new URLSearchParams(periodToParams(p)), day('2030-01-01'))
+    const period = periodFor('month', day('2026-11-19'))
+    const back = periodFromParams(new URLSearchParams(periodToParams(period)), day('2030-01-01'))
     expect(back.view).toBe('month')
     expect(range(back)).toEqual(['2026-11-01', '2026-11-30'])
   })
 
   it('data inválida cai em hoje', () => {
-    const p = periodFromParams(new URLSearchParams('view=month&date=2026-02-31'), day('2026-11-19'))
-    expect(range(p)).toEqual(['2026-11-01', '2026-11-30'])
+    const period = periodFromParams(new URLSearchParams('view=month&date=2026-02-31'), day('2026-11-19'))
+    expect(range(period)).toEqual(['2026-11-01', '2026-11-30'])
   })
 })
 
@@ -72,12 +72,12 @@ describe('rótulos', () => {
 
 describe('barHeights', () => {
   it('proporcional à maior barra', () => {
-    const h = barHeights([
+    const heights = barHeights([
       { received: 100, receivable: 50, expected: 50 },
       { received: 0, receivable: 0, expected: 100 },
     ])
-    expect(h[0]).toEqual({ received: 50, receivable: 25, expected: 25 })
-    expect(h[1]).toEqual({ received: 0, receivable: 0, expected: 50 })
+    expect(heights[0]).toEqual({ received: 50, receivable: 25, expected: 25 })
+    expect(heights[1]).toEqual({ received: 0, receivable: 0, expected: 50 })
   })
 
   it('sem valores: tudo zero (sem dividir por zero)', () => {

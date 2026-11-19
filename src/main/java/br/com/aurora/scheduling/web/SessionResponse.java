@@ -26,22 +26,22 @@ public record SessionResponse(
 
     private static final DateTimeFormatter LOCAL_DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
 
-    static SessionResponse from(SessionDetails d) {
+    static SessionResponse from(SessionDetails details) {
         return new SessionResponse(
-                d.id(),
-                d.patientId(),
-                d.patientName(),
-                LOCAL_DATE_TIME.format(d.startsAt()),
-                LOCAL_DATE_TIME.format(d.endsAt()),
-                d.durationMinutes(),
-                d.status(),
-                d.cancellationType(),
-                d.paymentStatus(),
-                d.paidAt() == null ? null : LOCAL_DATE_TIME.format(d.paidAt()),
-                d.amount(),
-                d.billable(),
-                d.recurrenceId(),
-                d.rescheduledFromId(),
-                d.overlapsWith());
+                details.id(),
+                details.patientId(),
+                details.patientName(),
+                LOCAL_DATE_TIME.format(details.startsAt()),
+                LOCAL_DATE_TIME.format(details.endsAt()),
+                details.durationMinutes(),
+                details.status(),
+                details.cancellationType(),
+                details.paymentStatus(),
+                details.paidAt() == null ? null : LOCAL_DATE_TIME.format(details.paidAt()),
+                details.amount(),
+                details.billable(),
+                details.recurrenceId(),
+                details.rescheduledFromId(),
+                details.overlapsWith());
     }
 }

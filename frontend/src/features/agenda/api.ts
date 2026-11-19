@@ -78,7 +78,7 @@ function sendAction(id: string, action: SessionAction, confirmOverlap: boolean):
 
 /** Texto do aviso de conflito: quem já está naquele horário. Conflito é aviso, não bloqueio. */
 function askAboutOverlap(conflicts: Conflict[]): boolean {
-  const lines = conflicts.map((c) => `• ${c.patientName}, das ${timeOf(c.startsAt)} às ${timeOf(c.endsAt)}`)
+  const lines = conflicts.map((conflict) => `• ${conflict.patientName}, das ${timeOf(conflict.startsAt)} às ${timeOf(conflict.endsAt)}`)
   return window.confirm(`Este horário se sobrepõe a outra sessão:\n${lines.join('\n')}\n\nMarcar mesmo assim?`)
 }
 
@@ -122,9 +122,9 @@ export function useActivePatients() {
     queryFn: async () => {
       const all = await api<Array<PatientOption & { active?: boolean }>>('/patients')
       return all
-        .filter((p) => p.active !== false)
-        .map((p) => ({ id: p.id, name: p.name }))
-        .sort((x, y) => x.name.localeCompare(y.name, 'pt-BR'))
+        .filter((patient) => patient.active !== false)
+        .map((patient) => ({ id: patient.id, name: patient.name }))
+        .sort((firstPatient, secondPatient) => firstPatient.name.localeCompare(secondPatient.name, 'pt-BR'))
     },
   })
 }

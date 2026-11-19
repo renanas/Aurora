@@ -51,29 +51,29 @@ export function periodLabel(period: Period): string {
 
 /** Rótulo de uma barra: "Seg 16" (por dia) ou "02 a 08" (por semana; um dia só: "01"). */
 export function barLabel(start: string, end: string, groupBy: GroupBy): string {
-  const s = parseDateString(start)
-  const e = parseDateString(end)
-  if (!s || !e) return start
-  const day = (d: Date) => String(d.getDate()).padStart(2, '0')
+  const startDate = parseDateString(start)
+  const endDate = parseDateString(end)
+  if (!startDate || !endDate) return start
+  const day = (date: Date) => String(date.getDate()).padStart(2, '0')
   if (groupBy === 'DAY') {
-    const weekday = weekdayShort(s)
-    return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${day(s)}`
+    const weekday = weekdayShort(startDate)
+    return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${day(startDate)}`
   }
-  return start === end ? day(s) : `${day(s)} a ${day(e)}`
+  return start === end ? day(startDate) : `${day(startDate)} a ${day(endDate)}`
 }
 
 /** Altura de cada parte da barra, em % da maior barra do gráfico. Sem valores: tudo zero. */
 export function barHeights<T extends { received: number; receivable: number; expected: number }>(
   bars: T[],
 ): { received: number; receivable: number; expected: number }[] {
-  const max = Math.max(0, ...bars.map((b) => b.received + b.receivable + b.expected))
-  return bars.map((b) =>
+  const max = Math.max(0, ...bars.map((bar) => bar.received + bar.receivable + bar.expected))
+  return bars.map((bar) =>
     max === 0
       ? { received: 0, receivable: 0, expected: 0 }
       : {
-          received: (b.received / max) * 100,
-          receivable: (b.receivable / max) * 100,
-          expected: (b.expected / max) * 100,
+          received: (bar.received / max) * 100,
+          receivable: (bar.receivable / max) * 100,
+          expected: (bar.expected / max) * 100,
         },
   )
 }

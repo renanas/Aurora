@@ -139,9 +139,9 @@ public class SessionPlanningService {
         LocalDateTime end = start.plusMinutes(durationMinutes);
         // Quem pode colidir começa antes do fim do novo horário e (por folga) no máximo um dia antes do início.
         List<TherapySession> hits = sessions.findInRange(current.id(), start.minusDays(1), end).stream()
-                .filter(s -> s.getStatus().occupiesSlot())
-                .filter(s -> !ignore.contains(s.getId()))
-                .filter(s -> OverlapPolicy.overlaps(start, end, s.getStartsAt(), s.endsAt()))
+                .filter(otherSession -> otherSession.getStatus().occupiesSlot())
+                .filter(otherSession -> !ignore.contains(otherSession.getId()))
+                .filter(otherSession -> OverlapPolicy.overlaps(start, end, otherSession.getStartsAt(), otherSession.endsAt()))
                 .toList();
         if (hits.isEmpty()) {
             return;
@@ -149,9 +149,9 @@ public class SessionPlanningService {
         Set<UUID> patientIds = hits.stream().map(TherapySession::getPatientId).collect(Collectors.toSet());
         Map<UUID, PatientInfo> names = patients.findAllById(current.id(), patientIds);
         throw new OverlapDetectedException(hits.stream()
-                .map(s -> new Conflict(s.getId(),
-                        names.containsKey(s.getPatientId()) ? names.get(s.getPatientId()).name() : "",
-                        s.getStartsAt(), s.endsAt()))
+                .map(otherSession -> new Conflict(otherSession.getId(),
+                        names.containsKey(otherSession.getPatientId()) ? names.get(otherSession.getPatientId()).name() : "",
+                        otherSession.getStartsAt(), otherSession.endsAt()))
                 .toList());
     }
 

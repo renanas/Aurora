@@ -7,7 +7,7 @@ describe('generatePassword', () => {
     const password = generatePassword()
 
     expect(password).toHaveLength(16)
-    expect([...password].every((c) => PASSWORD_ALPHABET.includes(c))).toBe(true)
+    expect([...password].every((character) => PASSWORD_ALPHABET.includes(character))).toBe(true)
   })
 
   it('respeita o tamanho pedido', () => {

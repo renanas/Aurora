@@ -33,22 +33,22 @@ public record EarningsResponse(
             String status, BigDecimal amount) {
     }
 
-    static EarningsResponse from(EarningsDetails d) {
+    static EarningsResponse from(EarningsDetails details) {
         return new EarningsResponse(
-                d.from().toString(),
-                d.to().toString(),
-                d.groupBy(),
-                new Totals(d.received(), d.receivable(), d.expected(), d.total()),
-                new PaidNotBillable(d.paidNotBillableAmount(), d.paidNotBillableCount()),
-                d.sessionsWithoutOutcome(),
-                d.forecastIncomplete(),
-                d.periods().stream()
-                        .map(p -> new Period(p.start().toString(), p.end().toString(), p.received(),
-                                p.receivable(), p.expected()))
+                details.from().toString(),
+                details.to().toString(),
+                details.groupBy(),
+                new Totals(details.received(), details.receivable(), details.expected(), details.total()),
+                new PaidNotBillable(details.paidNotBillableAmount(), details.paidNotBillableCount()),
+                details.sessionsWithoutOutcome(),
+                details.forecastIncomplete(),
+                details.periods().stream()
+                        .map(period -> new Period(period.start().toString(), period.end().toString(), period.received(),
+                                period.receivable(), period.expected()))
                         .toList(),
-                d.receivableSessions().stream()
-                        .map(s -> new ReceivableSession(s.sessionId(), s.patientId(), s.patientName(),
-                                LOCAL_DATE_TIME.format(s.startsAt()), s.status(), s.amount()))
+                details.receivableSessions().stream()
+                        .map(receivableSession -> new ReceivableSession(receivableSession.sessionId(), receivableSession.patientId(), receivableSession.patientName(),
+                                LOCAL_DATE_TIME.format(receivableSession.startsAt()), receivableSession.status(), receivableSession.amount()))
                         .toList());
     }
 }

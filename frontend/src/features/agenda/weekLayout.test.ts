@@ -7,13 +7,13 @@ const at = (id: string, startHour: number, endHour: number) => ({
   endMin: endHour * 60,
 });
 
-const byId = (items: ReturnType<typeof layoutDay>, id: string) => items.find((i) => i.id === id)!;
+const byId = (items: ReturnType<typeof layoutDay>, id: string) => items.find((item) => item.id === id)!;
 
 describe('layoutDay', () => {
   it('sessão sozinha ocupa a largura toda', () => {
-    const [a] = layoutDay([at('a', 9, 10)]);
-    expect(a.column).toBe(0);
-    expect(a.columns).toBe(1);
+    const [onlySession] = layoutDay([at('a', 9, 10)]);
+    expect(onlySession.column).toBe(0);
+    expect(onlySession.columns).toBe(1);
   });
 
   it('sessões que se sobrepõem ficam lado a lado', () => {
@@ -42,13 +42,13 @@ describe('layoutDay', () => {
     const out = layoutDay([at('a', 9, 11), at('b', 9, 10), at('c', 10, 11)]);
     expect(byId(out, 'b').column).toBe(byId(out, 'c').column);
     expect(byId(out, 'a').column === byId(out, 'b').column).toBe(false);
-    expect(out.every((i) => i.columns === 2)).toBe(true);
+    expect(out.every((item) => item.columns === 2)).toBe(true);
   });
 
   it('não depende da ordem de entrada', () => {
     const out = layoutDay([at('b', 9, 10), at('a', 9, 10)]);
     expect(out.length).toBe(2);
-    expect(out.map((i) => i.column).sort()).toEqual([0, 1]);
+    expect(out.map((item) => item.column).sort()).toEqual([0, 1]);
   });
 
   it('lista vazia', () => {

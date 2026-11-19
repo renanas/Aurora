@@ -31,7 +31,7 @@ public class SessionPriceService {
                 patientId, LocalDateTime.now(clock),
                 List.of(SessionStatus.SCHEDULED, SessionStatus.CONFIRMED), PaymentStatus.PENDING);
         Instant now = Instant.now(clock);
-        targets.forEach(s -> s.changeAmount(newPrice, now));
+        targets.forEach(session -> session.changeAmount(newPrice, now));
         return targets.size();
     }
 }

@@ -127,10 +127,10 @@ export default function PatientFormPage() {
   function showServerError(error: unknown) {
     if (error instanceof ApiError && error.fieldErrors.length > 0) {
       const fieldMap: Record<string, keyof FormValues> = { name: 'name', whatsapp: 'whatsapp', sessionPrice: 'price' }
-      for (const fe of error.fieldErrors) {
-        const field = fieldMap[fe.field]
+      for (const fieldError of error.fieldErrors) {
+        const field = fieldMap[fieldError.field]
         if (field) {
-          setError(field, { message: fe.message })
+          setError(field, { message: fieldError.message })
         }
       }
     }
@@ -211,9 +211,9 @@ export default function PatientFormPage() {
             autoComplete="off"
             {...register('whatsapp', {
               required: 'Informe o WhatsApp.',
-              validate: (v) => {
-                const n = countDigits(v)
-                return (n >= 10 && n <= 15) || 'O WhatsApp deve ter de 10 a 15 dígitos.'
+              validate: (value) => {
+                const digitCount = countDigits(value)
+                return (digitCount >= 10 && digitCount <= 15) || 'O WhatsApp deve ter de 10 a 15 dígitos.'
               },
             })}
           />

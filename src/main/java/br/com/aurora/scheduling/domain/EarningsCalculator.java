@@ -42,9 +42,9 @@ public final class EarningsCalculator {
             Objects.requireNonNull(amount, "amount");
         }
 
-        public static Entry of(TherapySession s) {
-            return new Entry(s.getId(), s.getPatientId(), s.getStartsAt(), s.endsAt(), s.getStatus(),
-                    s.isBillable(), s.getPaymentStatus() == PaymentStatus.PAID, s.getAmount());
+        public static Entry of(TherapySession session) {
+            return new Entry(session.getId(), session.getPatientId(), session.getStartsAt(), session.endsAt(), session.getStatus(),
+                    session.isBillable(), session.getPaymentStatus() == PaymentStatus.PAID, session.getAmount());
         }
     }
 
@@ -71,14 +71,14 @@ public final class EarningsCalculator {
     private EarningsCalculator() {
     }
 
-    public static Band classify(Entry e) {
-        if (!e.billable()) {
+    public static Band classify(Entry entry) {
+        if (!entry.billable()) {
             return Band.NOT_BILLABLE;
         }
-        if (e.paid()) {
+        if (entry.paid()) {
             return Band.RECEIVED;
         }
-        return switch (e.status()) {
+        return switch (entry.status()) {
             case SCHEDULED, CONFIRMED -> Band.EXPECTED;
             default -> Band.RECEIVABLE;
         };
@@ -98,8 +98,8 @@ public final class EarningsCalculator {
         List<LocalDate[]> bounds = periodBounds(from, to, groupBy);
         Map<LocalDate, Integer> indexByDay = new HashMap<>();
         for (int i = 0; i < bounds.size(); i++) {
-            for (LocalDate d = bounds.get(i)[0]; !d.isAfter(bounds.get(i)[1]); d = d.plusDays(1)) {
-                indexByDay.put(d, i);
+            for (LocalDate day = bounds.get(i)[0]; !day.isAfter(bounds.get(i)[1]); day = day.plusDays(1)) {
+                indexByDay.put(day, i);
             }
         }
         BigDecimal[][] sums = new BigDecimal[bounds.size()][3];
@@ -115,31 +115,31 @@ public final class EarningsCalculator {
         int withoutOutcome = 0;
         List<Entry> receivableEntries = new ArrayList<>();
 
-        for (Entry e : entries) {
-            Integer index = indexByDay.get(e.startsAt().toLocalDate());
+        for (Entry entry : entries) {
+            Integer index = indexByDay.get(entry.startsAt().toLocalDate());
             if (index == null) {
                 continue;
             }
-            switch (classify(e)) {
+            switch (classify(entry)) {
                 case RECEIVED -> {
-                    received = received.add(e.amount());
-                    sums[index][0] = sums[index][0].add(e.amount());
+                    received = received.add(entry.amount());
+                    sums[index][0] = sums[index][0].add(entry.amount());
                 }
                 case RECEIVABLE -> {
-                    receivable = receivable.add(e.amount());
-                    sums[index][1] = sums[index][1].add(e.amount());
-                    receivableEntries.add(e);
+                    receivable = receivable.add(entry.amount());
+                    sums[index][1] = sums[index][1].add(entry.amount());
+                    receivableEntries.add(entry);
                 }
                 case EXPECTED -> {
-                    expected = expected.add(e.amount());
-                    sums[index][2] = sums[index][2].add(e.amount());
-                    if (!e.endsAt().isAfter(now)) {
+                    expected = expected.add(entry.amount());
+                    sums[index][2] = sums[index][2].add(entry.amount());
+                    if (!entry.endsAt().isAfter(now)) {
                         withoutOutcome++;
                     }
                 }
                 case NOT_BILLABLE -> {
-                    if (e.paid()) {
-                        paidNotBillable = paidNotBillable.add(e.amount());
+                    if (entry.paid()) {
+                        paidNotBillable = paidNotBillable.add(entry.amount());
                         paidNotBillableCount++;
                     }
                 }

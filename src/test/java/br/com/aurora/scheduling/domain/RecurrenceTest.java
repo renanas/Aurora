@@ -24,35 +24,35 @@ class RecurrenceTest {
     @Test
     @DisplayName("nasce ativa; encerrar define o último dia de vigência")
     void startsActiveAndEnds() {
-        Recurrence r = weeklyAtNine();
-        assertThat(r.isActive()).isTrue();
+        Recurrence recurrence = weeklyAtNine();
+        assertThat(recurrence.isActive()).isTrue();
 
-        r.endOn(LocalDate.of(2026, 10, 10));
+        recurrence.endOn(LocalDate.of(2026, 10, 10));
 
-        assertThat(r.isActive()).isFalse();
-        assertThat(r.getEndsOn()).isEqualTo(LocalDate.of(2026, 10, 10));
+        assertThat(recurrence.isActive()).isFalse();
+        assertThat(recurrence.getEndsOn()).isEqualTo(LocalDate.of(2026, 10, 10));
     }
 
     @Test
     @DisplayName("o último dia pode ser a própria âncora, mas nunca antes dela")
     void endCannotBeBeforeAnchor() {
-        Recurrence r = weeklyAtNine();
+        Recurrence recurrence = weeklyAtNine();
 
-        r.endOn(ANCHOR);
-        assertThat(r.getEndsOn()).isEqualTo(ANCHOR);
+        recurrence.endOn(ANCHOR);
+        assertThat(recurrence.getEndsOn()).isEqualTo(ANCHOR);
 
-        assertThatThrownBy(() -> r.endOn(ANCHOR.minusDays(1))).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> recurrence.endOn(ANCHOR.minusDays(1))).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     @DisplayName("hasSameSchedule compara âncora, horário e frequência")
     void sameSchedule() {
-        Recurrence r = weeklyAtNine();
+        Recurrence recurrence = weeklyAtNine();
 
-        assertThat(r.hasSameSchedule(ANCHOR, LocalTime.of(9, 0), Frequency.WEEKLY)).isTrue();
-        assertThat(r.hasSameSchedule(ANCHOR.plusDays(7), LocalTime.of(9, 0), Frequency.WEEKLY)).isFalse();
-        assertThat(r.hasSameSchedule(ANCHOR, LocalTime.of(10, 0), Frequency.WEEKLY)).isFalse();
-        assertThat(r.hasSameSchedule(ANCHOR, LocalTime.of(9, 0), Frequency.BIWEEKLY)).isFalse();
+        assertThat(recurrence.hasSameSchedule(ANCHOR, LocalTime.of(9, 0), Frequency.WEEKLY)).isTrue();
+        assertThat(recurrence.hasSameSchedule(ANCHOR.plusDays(7), LocalTime.of(9, 0), Frequency.WEEKLY)).isFalse();
+        assertThat(recurrence.hasSameSchedule(ANCHOR, LocalTime.of(10, 0), Frequency.WEEKLY)).isFalse();
+        assertThat(recurrence.hasSameSchedule(ANCHOR, LocalTime.of(9, 0), Frequency.BIWEEKLY)).isFalse();
     }
 
     @Test

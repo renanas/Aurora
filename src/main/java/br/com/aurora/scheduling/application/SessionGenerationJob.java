@@ -45,9 +45,9 @@ public class SessionGenerationJob {
         for (UUID id : ids) {
             try {
                 created += generator.generateFor(id);
-            } catch (RuntimeException e) {
+            } catch (RuntimeException exception) {
                 // Sem a mensagem da exceção: ela pode conter valores do banco.
-                log.error("Falha ao gerar sessões: recurrenceId={} type={}", id, e.getClass().getName());
+                log.error("Falha ao gerar sessões: recurrenceId={} type={}", id, exception.getClass().getName());
             }
         }
         log.info("Geração de sessões concluída: recorrências={} novasSessões={}", ids.size(), created);

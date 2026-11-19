@@ -15,7 +15,7 @@ export interface PositionedItem extends DayItem {
 }
 
 export function layoutDay(items: DayItem[]): PositionedItem[] {
-  const sorted = [...items].sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
+  const sorted = [...items].sort((firstItem, secondItem) => firstItem.startMin - secondItem.startMin || firstItem.endMin - secondItem.endMin);
   const result: PositionedItem[] = [];
 
   let cluster: DayItem[] = [];

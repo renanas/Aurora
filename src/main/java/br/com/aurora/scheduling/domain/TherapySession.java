@@ -85,19 +85,19 @@ public class TherapySession {
     /** Sessão gerada a partir de uma recorrência: nasce agendada e com pagamento pendente. */
     public static TherapySession generated(UUID psychologistId, UUID patientId, UUID recurrenceId,
             LocalDate occurrenceDate, LocalDateTime startsAt, BigDecimal amount, Instant now) {
-        TherapySession s = new TherapySession();
-        s.psychologistId = Objects.requireNonNull(psychologistId, "psychologistId");
-        s.patientId = patientId;
-        s.recurrenceId = recurrenceId;
-        s.occurrenceDate = occurrenceDate;
-        s.startsAt = startsAt;
-        s.durationMinutes = (short) SystemConstants.SESSION_DURATION_MINUTES;
-        s.status = SessionStatus.SCHEDULED;
-        s.paymentStatus = PaymentStatus.PENDING;
-        s.amount = amount;
-        s.createdAt = now;
-        s.updatedAt = now;
-        return s;
+        TherapySession session = new TherapySession();
+        session.psychologistId = Objects.requireNonNull(psychologistId, "psychologistId");
+        session.patientId = patientId;
+        session.recurrenceId = recurrenceId;
+        session.occurrenceDate = occurrenceDate;
+        session.startsAt = startsAt;
+        session.durationMinutes = (short) SystemConstants.SESSION_DURATION_MINUTES;
+        session.status = SessionStatus.SCHEDULED;
+        session.paymentStatus = PaymentStatus.PENDING;
+        session.amount = amount;
+        session.createdAt = now;
+        session.updatedAt = now;
+        return session;
     }
 
     public LocalDateTime endsAt() {
@@ -200,17 +200,17 @@ public class TherapySession {
     /** Sessão avulsa: fora de qualquer recorrência. Nasce agendada e com pagamento pendente. */
     public static TherapySession standalone(UUID psychologistId, UUID patientId, LocalDateTime startsAt,
             BigDecimal amount, Instant now) {
-        TherapySession s = new TherapySession();
-        s.psychologistId = Objects.requireNonNull(psychologistId, "psychologistId");
-        s.patientId = patientId;
-        s.startsAt = startsAt;
-        s.durationMinutes = (short) SystemConstants.SESSION_DURATION_MINUTES;
-        s.status = SessionStatus.SCHEDULED;
-        s.paymentStatus = PaymentStatus.PENDING;
-        s.amount = amount;
-        s.createdAt = now;
-        s.updatedAt = now;
-        return s;
+        TherapySession session = new TherapySession();
+        session.psychologistId = Objects.requireNonNull(psychologistId, "psychologistId");
+        session.patientId = patientId;
+        session.startsAt = startsAt;
+        session.durationMinutes = (short) SystemConstants.SESSION_DURATION_MINUTES;
+        session.status = SessionStatus.SCHEDULED;
+        session.paymentStatus = PaymentStatus.PENDING;
+        session.amount = amount;
+        session.createdAt = now;
+        session.updatedAt = now;
+        return session;
     }
 
     /**

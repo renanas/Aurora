@@ -40,31 +40,31 @@ class OverlapPolicyTest {
     @Test
     @DisplayName("o mapa é simétrico e só traz quem tem conflito")
     void mapIsSymmetricAndOnlyHasConflicts() {
-        UUID a = UUID.randomUUID();
-        UUID b = UUID.randomUUID();
-        UUID c = UUID.randomUUID();
+        UUID firstSlotId = UUID.randomUUID();
+        UUID secondSlotId = UUID.randomUUID();
+        UUID thirdSlotId = UUID.randomUUID();
 
         Map<UUID, List<UUID>> result = OverlapPolicy.overlapsBySlot(
-                List.of(slot(a, 9, 0), slot(b, 9, 30), slot(c, 11, 0)));
+                List.of(slot(firstSlotId, 9, 0), slot(secondSlotId, 9, 30), slot(thirdSlotId, 11, 0)));
 
-        assertThat(result).containsOnlyKeys(a, b);
-        assertThat(result.get(a)).containsExactly(b);
-        assertThat(result.get(b)).containsExactly(a);
+        assertThat(result).containsOnlyKeys(firstSlotId, secondSlotId);
+        assertThat(result.get(firstSlotId)).containsExactly(secondSlotId);
+        assertThat(result.get(secondSlotId)).containsExactly(firstSlotId);
     }
 
     @Test
     @DisplayName("três sessões no mesmo horário: cada uma conflita com as outras duas")
     void threeAtTheSameTime() {
-        UUID a = UUID.randomUUID();
-        UUID b = UUID.randomUUID();
-        UUID c = UUID.randomUUID();
+        UUID firstSlotId = UUID.randomUUID();
+        UUID secondSlotId = UUID.randomUUID();
+        UUID thirdSlotId = UUID.randomUUID();
 
         Map<UUID, List<UUID>> result = OverlapPolicy.overlapsBySlot(
-                List.of(slot(a, 9, 0), slot(b, 9, 0), slot(c, 9, 0)));
+                List.of(slot(firstSlotId, 9, 0), slot(secondSlotId, 9, 0), slot(thirdSlotId, 9, 0)));
 
-        assertThat(result.get(a)).containsExactlyInAnyOrder(b, c);
-        assertThat(result.get(b)).containsExactlyInAnyOrder(a, c);
-        assertThat(result.get(c)).containsExactlyInAnyOrder(a, b);
+        assertThat(result.get(firstSlotId)).containsExactlyInAnyOrder(secondSlotId, thirdSlotId);
+        assertThat(result.get(secondSlotId)).containsExactlyInAnyOrder(firstSlotId, thirdSlotId);
+        assertThat(result.get(thirdSlotId)).containsExactlyInAnyOrder(firstSlotId, secondSlotId);
     }
 
     @Test

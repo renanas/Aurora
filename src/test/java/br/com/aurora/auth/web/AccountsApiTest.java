@@ -88,8 +88,8 @@ class AccountsApiTest {
         MvcResult result = mvc.perform(get("/api/auth/me")).andReturn();
         String prefix = "XSRF-TOKEN=";
         return result.getResponse().getHeaders("Set-Cookie").stream()
-                .filter(c -> c.startsWith(prefix))
-                .map(c -> c.substring(prefix.length(), c.indexOf(';') < 0 ? c.length() : c.indexOf(';')))
+                .filter(cookieHeader -> cookieHeader.startsWith(prefix))
+                .map(cookieHeader -> cookieHeader.substring(prefix.length(), cookieHeader.indexOf(';') < 0 ? cookieHeader.length() : cookieHeader.indexOf(';')))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("o servidor não enviou o cookie XSRF-TOKEN"));
     }

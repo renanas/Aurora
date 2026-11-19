@@ -41,7 +41,7 @@ export default function AgendaPage() {
   const todayString = toDateString(today);
 
   const { startHour, endHour } = hourRange(
-    sessions.map((s) => ({ startMin: minutesOfDay(s.startsAt), endMin: minutesOfDay(s.endsAt) })),
+    sessions.map((session) => ({ startMin: minutesOfDay(session.startsAt), endMin: minutesOfDay(session.endsAt) })),
   );
   const hours = Array.from({ length: endHour - startHour }, (_, i) => startHour + i);
   const gridHeight = hours.length * HOUR_PX;
@@ -49,7 +49,7 @@ export default function AgendaPage() {
   const horizonDate = toDateString(addDays(today, GENERATION_HORIZON_WEEKS * 7));
   const beyondHorizon = toDateString(weekEnd) > horizonDate;
 
-  const selected = sessions.find((s) => s.id === selectedId) ?? null;
+  const selected = sessions.find((session) => session.id === selectedId) ?? null;
 
   // "Nova sessão": hoje, se hoje está na semana mostrada; senão, o primeiro dia dela.
   const defaultNewDate =
@@ -141,25 +141,25 @@ export default function AgendaPage() {
           {/* Corpo: coluna de horas + 7 dias */}
           <div className="grid grid-cols-[3rem_repeat(7,minmax(0,1fr))]">
             <div className="relative" style={{ height: gridHeight }}>
-              {hours.map((hour, i) => (
+              {hours.map((hour, hourIndex) => (
                 <div
                   key={hour}
                   className="absolute right-1 -translate-y-1/2 text-xs text-slate-500"
-                  style={{ top: i * HOUR_PX }}
+                  style={{ top: hourIndex * HOUR_PX }}
                 >
-                  {i > 0 ? `${String(hour).padStart(2, '0')}:00` : ''}
+                  {hourIndex > 0 ? `${String(hour).padStart(2, '0')}:00` : ''}
                 </div>
               ))}
             </div>
 
             {days.map((day) => {
               const dayString = toDateString(day);
-              const daySessions = sessions.filter((s) => dateOf(s.startsAt) === dayString);
+              const daySessions = sessions.filter((session) => dateOf(session.startsAt) === dayString);
               const positioned = layoutDay(
-                daySessions.map((s) => ({
-                  id: s.id,
-                  startMin: minutesOfDay(s.startsAt),
-                  endMin: minutesOfDay(s.endsAt),
+                daySessions.map((session) => ({
+                  id: session.id,
+                  startMin: minutesOfDay(session.startsAt),
+                  endMin: minutesOfDay(session.endsAt),
                 })),
               );
               return (
@@ -167,39 +167,39 @@ export default function AgendaPage() {
                   key={dayString}
                   className={`relative cursor-cell border-l border-slate-200 ${dayString === todayString ? 'bg-indigo-50/30' : ''}`}
                   style={{ height: gridHeight }}
-                  onClick={(ev) => {
+                  onClick={(event) => {
                     // Só o toque em espaço vazio conta; o toque numa sessão abre o painel dela.
-                    if (ev.target !== ev.currentTarget) {
+                    if (event.target !== event.currentTarget) {
                       return;
                     }
-                    const offset = ev.clientY - ev.currentTarget.getBoundingClientRect().top;
+                    const offset = event.clientY - event.currentTarget.getBoundingClientRect().top;
                     setSelectedId(null);
                     setCreating({ date: dayString, time: formatMinutes(minutesFromOffset(offset, HOUR_PX, startHour)) });
                   }}
                 >
-                  {hours.map((hour, i) => (
+                  {hours.map((hour, hourIndex) => (
                     <div
                       key={hour}
                       className="pointer-events-none absolute inset-x-0 border-t border-slate-100"
-                      style={{ top: i * HOUR_PX }}
+                      style={{ top: hourIndex * HOUR_PX }}
                     />
                   ))}
-                  {positioned.map((p) => {
-                    const session = daySessions.find((s) => s.id === p.id)!;
-                    const top = ((p.startMin - startHour * 60) / 60) * HOUR_PX;
-                    const height = ((p.endMin - p.startMin) / 60) * HOUR_PX;
+                  {positioned.map((positionedSession) => {
+                    const session = daySessions.find((daySession) => daySession.id === positionedSession.id)!;
+                    const top = ((positionedSession.startMin - startHour * 60) / 60) * HOUR_PX;
+                    const height = ((positionedSession.endMin - positionedSession.startMin) / 60) * HOUR_PX;
                     const hasOverlap = session.overlapsWith.length > 0;
                     return (
                       <button
-                        key={p.id}
+                        key={positionedSession.id}
                         type="button"
-                        onClick={() => setSelectedId(p.id)}
-                        className={`absolute overflow-hidden rounded-md border px-1.5 py-1 text-left text-xs leading-tight shadow-sm ${statusBlockClasses[session.status]} ${hasOverlap ? '!border-amber-500 ring-2 ring-amber-300' : ''} ${p.id === selectedId ? 'outline outline-2 outline-indigo-600' : ''}`}
+                        onClick={() => setSelectedId(positionedSession.id)}
+                        className={`absolute overflow-hidden rounded-md border px-1.5 py-1 text-left text-xs leading-tight shadow-sm ${statusBlockClasses[session.status]} ${hasOverlap ? '!border-amber-500 ring-2 ring-amber-300' : ''} ${positionedSession.id === selectedId ? 'outline outline-2 outline-indigo-600' : ''}`}
                         style={{
                           top,
                           height: height - 2,
-                          left: `calc(${(p.column / p.columns) * 100}% + 2px)`,
-                          width: `calc(${100 / p.columns}% - 4px)`,
+                          left: `calc(${(positionedSession.column / positionedSession.columns) * 100}% + 2px)`,
+                          width: `calc(${100 / positionedSession.columns}% - 4px)`,
                         }}
                         aria-label={`${session.patientName}, ${timeOf(session.startsAt)}, ${statusLabel[session.status]}${hasOverlap ? ', conflito de horário' : ''}`}
                       >
