@@ -6,6 +6,7 @@ import './index.css'
 import App from './App'
 import { AUTH_KEY, dropSession } from './features/auth/api'
 import { ApiError } from './shared/api/client'
+import { ThemeProvider } from './shared/lib/ThemeProvider'
 
 /** Sessão vencida em qualquer chamada: apaga os dados da tela e volta para o login. */
 function handleError(client: QueryClient, error: Error) {
@@ -29,9 +30,11 @@ const queryClient: QueryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <ThemeProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </ThemeProvider>
     </QueryClientProvider>
   </StrictMode>,
 )

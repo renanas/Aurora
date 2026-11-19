@@ -61,14 +61,8 @@ public class AppUser {
 
     public static AppUser create(String email, String passwordHash, String displayName, Role role,
             boolean mustChangePassword, Instant now) {
-        String normalized = normalizeEmail(email);
-        if (normalized.length() > MAX_EMAIL_LENGTH || !EMAIL.matcher(normalized).matches()) {
-            throw new IllegalArgumentException("E-mail inválido.");
-        }
-        String name = displayName == null ? "" : displayName.strip();
-        if (name.isEmpty() || name.length() > MAX_NAME_LENGTH) {
-            throw new IllegalArgumentException("Nome inválido.");
-        }
+        String validEmail = validEmail(email);
+        String validName = validDisplayName(displayName);
         if (passwordHash == null || passwordHash.isBlank()) {
             throw new IllegalArgumentException("Hash de senha obrigatório.");
         }
@@ -77,9 +71,9 @@ public class AppUser {
 
         AppUser user = new AppUser();
         user.id = UUID.randomUUID();
-        user.email = normalized;
+        user.email = validEmail;
         user.passwordHash = passwordHash;
-        user.displayName = name;
+        user.displayName = validName;
         user.role = role;
         user.active = true;
         user.mustChangePassword = mustChangePassword;
@@ -106,6 +100,32 @@ public class AppUser {
     /** Forma única do e-mail: sem espaços nas pontas e em minúsculas. Nulo vira texto vazio. */
     public static String normalizeEmail(String raw) {
         return raw == null ? "" : raw.strip().toLowerCase(Locale.ROOT);
+    }
+
+    /** A própria pessoa trocou o nome que aparece no cabeçalho. */
+    public void rename(String newDisplayName) {
+        this.displayName = validDisplayName(newDisplayName);
+    }
+
+    /** A própria pessoa trocou o e-mail (que é o login). Quem chama confere a senha e se o e-mail está livre. */
+    public void changeEmail(String newEmail) {
+        this.email = validEmail(newEmail);
+    }
+
+    private static String validEmail(String rawEmail) {
+        String normalizedEmail = normalizeEmail(rawEmail);
+        if (normalizedEmail.length() > MAX_EMAIL_LENGTH || !EMAIL.matcher(normalizedEmail).matches()) {
+            throw new IllegalArgumentException("E-mail inválido.");
+        }
+        return normalizedEmail;
+    }
+
+    private static String validDisplayName(String rawDisplayName) {
+        String strippedName = rawDisplayName == null ? "" : rawDisplayName.strip();
+        if (strippedName.isEmpty() || strippedName.length() > MAX_NAME_LENGTH) {
+            throw new IllegalArgumentException("Nome inválido.");
+        }
+        return strippedName;
     }
 
     /** Conta desativada não entra mais; os dados continuam no banco. */
