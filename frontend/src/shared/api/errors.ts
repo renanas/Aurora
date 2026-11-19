@@ -15,6 +15,7 @@ const MESSAGES: Record<string, string> = {
   RECURRENCE_ANCHOR_NOT_AFTER_CURRENT:
     'A nova data de início precisa ser depois da data de início do horário atual.',
   INVALID_DATE_RANGE: 'Período inválido. Escolha no máximo 100 dias.',
+  INVALID_GROUP_BY: 'Agrupamento inválido. Atualize a tela.',
   INVALID_STATUS_TRANSITION: 'Esta ação não é possível na situação atual da sessão. Atualize a tela.',
   SESSION_NOT_BILLABLE: 'Esta sessão não é cobrada, então não recebe pagamento.',
   OVERLAP_DETECTED: 'Este horário se sobrepõe a outra sessão.',

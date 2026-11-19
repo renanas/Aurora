@@ -5,6 +5,7 @@ import { useMe } from './features/auth/api'
 import AuthGate from './features/auth/AuthGate'
 import ChangePasswordPage from './features/auth/ChangePasswordPage'
 import CurrentUserName from './features/auth/CurrentUserName'
+import EarningsPage from './features/earnings/EarningsPage'
 import LogoutButton from './features/auth/LogoutButton'
 import PatientsPage from './features/patients/PatientsPage'
 import PatientFormPage from './features/patients/PatientFormPage'
@@ -39,6 +40,9 @@ function Layout() {
             <NavLink to="/patients" className={navClass}>
               Pacientes
             </NavLink>
+            <NavLink to="/ganhos" className={navClass}>
+              Ganhos
+            </NavLink>
             {isAdmin && (
               <NavLink to="/accounts" className={navClass}>
                 Contas
@@ -57,6 +61,7 @@ function Layout() {
         <Routes>
           <Route path="/" element={<Navigate to="/agenda" replace />} />
           <Route path="/agenda" element={<AgendaPage />} />
+          <Route path="/ganhos" element={<EarningsPage />} />
           <Route element={<NarrowLayout />}>
             <Route path="/patients" element={<PatientsPage />} />
             <Route path="/patients/new" element={<PatientFormPage />} />
