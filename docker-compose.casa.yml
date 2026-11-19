@@ -1,0 +1,23 @@
+# Banco do "modo casa": o Aurora de verdade, usado pelo tablet, rodando neste computador.
+# Projeto separado do de desenvolvimento (outro volume e outra porta): "docker compose down -v" no
+# desenvolvimento NÃO apaga estes dados. As senhas vêm do arquivo .env.casa, criado pelo
+# scripts/aurora-casa.ps1 na primeira execução (fora do Git).
+name: aurora-casa
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aurora
+      POSTGRES_USER: aurora_migrator
+      POSTGRES_PASSWORD: ${AURORA_MIGRATOR_DB_PASSWORD:?rode scripts/aurora-casa.ps1}
+      AURORA_APP_DB_PASSWORD: ${AURORA_APP_DB_PASSWORD:?rode scripts/aurora-casa.ps1}
+    ports:
+      - "127.0.0.1:5433:5432"               # só este computador fala com o banco
+    volumes:
+      - aurora-casa-data:/var/lib/postgresql/data
+      - ./docker/initdb-casa:/docker-entrypoint-initdb.d:ro
+
+volumes:
+  aurora-casa-data:
