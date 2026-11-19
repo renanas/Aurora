@@ -1,0 +1,24 @@
+# Perfil "casa": o Aurora de verdade rodando neste computador, usado pelo tablet na rede de casa.
+# Iniciado por scripts/aurora-casa.ps1, que carrega as senhas do .env.casa (fora do Git).
+#  - O Spring só aceita conexões deste computador (127.0.0.1); o tablet fala com o servidor do
+#    frontend (vite preview), que repassa /api para cá.
+#  - Rede de casa sem HTTPS: o cookie de sessão não pode ser "Secure", senão o navegador não o guarda.
+#  - Conta inicial do administrador: AURORA_AUTH_USERNAME / AURORA_AUTH_PASSWORD, pedidas pelo script
+#    só na primeira execução.
+spring:
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5433/aurora
+    username: aurora_app
+    password: ${AURORA_APP_DB_PASSWORD}
+  flyway:
+    url: jdbc:postgresql://127.0.0.1:5433/aurora
+    user: aurora_migrator
+    password: ${AURORA_MIGRATOR_DB_PASSWORD}
+
+server:
+  address: 127.0.0.1
+  port: 8090             # diferente do desenvolvimento (8080): dá para rodar os dois ao mesmo tempo
+  servlet:
+    session:
+      cookie:
+        secure: false
