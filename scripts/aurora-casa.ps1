@@ -163,7 +163,7 @@ Start-Process powershell -WorkingDirectory (Join-Path $root 'frontend') -Argumen
 Remove-Item env:AURORA_AUTH_PASSWORD -ErrorAction SilentlyContinue
 
 $ips = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
-    Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254.*' -and $_.PrefixOrigin -ne 'WellKnown' } |
+    Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254.*' -and $_.PrefixOrigin -ne 'WellKnown' -and $_.InterfaceAlias -notlike 'vEthernet*' } |
     Select-Object -ExpandProperty IPAddress
 
 Write-Host ''
