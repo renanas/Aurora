@@ -53,9 +53,9 @@ public class EarningsService {
         List<Entry> entries = sessions.findInRange(owner, from.atStartOfDay(), to.plusDays(1).atStartOfDay())
                 .stream().map(Entry::of).toList();
         LocalDateTime now = LocalDateTime.now(clock);
-        Result r = EarningsCalculator.calculate(entries, from, to, grouping, now);
+        Result result = EarningsCalculator.calculate(entries, from, to, grouping, now);
 
-        Set<UUID> patientIds = r.receivableEntries().stream().map(Entry::patientId).collect(Collectors.toSet());
+        Set<UUID> patientIds = result.receivableEntries().stream().map(Entry::patientId).collect(Collectors.toSet());
         Map<UUID, PatientInfo> names = patients.findAllById(owner, patientIds);
         LocalDate horizon = now.toLocalDate().plusWeeks(SystemConstants.GENERATION_HORIZON_WEEKS);
 
@@ -63,22 +63,22 @@ public class EarningsService {
                 from,
                 to,
                 grouping.name(),
-                r.received(),
-                r.receivable(),
-                r.expected(),
-                r.total(),
-                r.paidNotBillableAmount(),
-                r.paidNotBillableCount(),
-                r.sessionsWithoutOutcome(),
+                result.received(),
+                result.receivable(),
+                result.expected(),
+                result.total(),
+                result.paidNotBillableAmount(),
+                result.paidNotBillableCount(),
+                result.sessionsWithoutOutcome(),
                 to.isAfter(horizon),
-                r.periods().stream()
-                        .map(p -> new EarningsDetails.Period(p.start(), p.end(), p.received(), p.receivable(),
-                                p.expected()))
+                result.periods().stream()
+                        .map(period -> new EarningsDetails.Period(period.start(), period.end(), period.received(), period.receivable(),
+                                period.expected()))
                         .toList(),
-                r.receivableEntries().stream()
-                        .map(e -> new EarningsDetails.ReceivableSession(e.sessionId(), e.patientId(),
-                                names.containsKey(e.patientId()) ? names.get(e.patientId()).name() : "",
-                                e.startsAt(), e.status().name(), e.amount()))
+                result.receivableEntries().stream()
+                        .map(entry -> new EarningsDetails.ReceivableSession(entry.sessionId(), entry.patientId(),
+                                names.containsKey(entry.patientId()) ? names.get(entry.patientId()).name() : "",
+                                entry.startsAt(), entry.status().name(), entry.amount()))
                         .toList());
     }
 

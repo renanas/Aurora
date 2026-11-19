@@ -44,28 +44,28 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     // ---------- erros do domínio ----------
 
     @ExceptionHandler(NotFoundException.class)
-    public ProblemDetail handleNotFound(NotFoundException ex) {
-        return problem(HttpStatus.NOT_FOUND, "Não encontrado", ex.code(), ex.getMessage());
+    public ProblemDetail handleNotFound(NotFoundException exception) {
+        return problem(HttpStatus.NOT_FOUND, "Não encontrado", exception.code(), exception.getMessage());
     }
 
     @ExceptionHandler(BusinessRuleException.class)
-    public ProblemDetail handleBusinessRule(BusinessRuleException ex) {
-        return problem(HttpStatus.UNPROCESSABLE_ENTITY, "Regra de negócio violada", ex.code(), ex.getMessage());
+    public ProblemDetail handleBusinessRule(BusinessRuleException exception) {
+        return problem(HttpStatus.UNPROCESSABLE_ENTITY, "Regra de negócio violada", exception.code(), exception.getMessage());
     }
 
     @ExceptionHandler(OverlapDetectedException.class)
-    public ProblemDetail handleOverlap(OverlapDetectedException ex) {
-        int total = ex.conflicts().size();
+    public ProblemDetail handleOverlap(OverlapDetectedException exception) {
+        int total = exception.conflicts().size();
         String detail = total == 1
                 ? "O horário se sobrepõe a 1 sessão existente."
                 : "O horário se sobrepõe a " + total + " sessões existentes.";
-        ProblemDetail pd = problem(HttpStatus.CONFLICT, "Horário em conflito", ex.code(), detail);
-        pd.setProperty("conflicts", ex.conflicts().stream().map(GlobalExceptionHandler::toBody).toList());
-        return pd;
+        ProblemDetail problemDetail = problem(HttpStatus.CONFLICT, "Horário em conflito", exception.code(), detail);
+        problemDetail.setProperty("conflicts", exception.conflicts().stream().map(GlobalExceptionHandler::toBody).toList());
+        return problemDetail;
     }
 
     @ExceptionHandler(OptimisticLockingFailureException.class)
-    public ProblemDetail handleConcurrentModification(OptimisticLockingFailureException ex) {
+    public ProblemDetail handleConcurrentModification(OptimisticLockingFailureException exception) {
         return problem(HttpStatus.CONFLICT, "Edição simultânea", "CONCURRENT_MODIFICATION",
                 "Este registro foi alterado em outro lugar. Atualize a tela e tente novamente.");
     }
@@ -73,10 +73,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     // ---------- erro inesperado ----------
 
     @ExceptionHandler(Exception.class)
-    public ProblemDetail handleUnexpected(Exception ex, HttpServletRequest request) {
-        Throwable root = rootCause(ex);
+    public ProblemDetail handleUnexpected(Exception exception, HttpServletRequest request) {
+        Throwable root = rootCause(exception);
         log.error("Erro inesperado: type={} rootType={} method={} path={} frames={}",
-                ex.getClass().getName(), root.getClass().getName(),
+                exception.getClass().getName(), root.getClass().getName(),
                 request.getMethod(), request.getRequestURI(), topFrames(root));
         return problem(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno", "INTERNAL_ERROR",
                 "Ocorreu um erro inesperado. Tente novamente.");
@@ -85,47 +85,47 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     // ---------- erros de entrada (framework) ----------
 
     @Override
-    protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException exception,
             HttpHeaders headers, HttpStatusCode status, WebRequest request) {
-        List<FieldProblem> errors = ex.getBindingResult().getFieldErrors().stream()
-                .map(fe -> new FieldProblem(fe.getField(), fe.getDefaultMessage()))
+        List<FieldProblem> errors = exception.getBindingResult().getFieldErrors().stream()
+                .map(fieldError -> new FieldProblem(fieldError.getField(), fieldError.getDefaultMessage()))
                 .toList();
-        ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, "Dados inválidos", "VALIDATION_ERROR",
+        ProblemDetail problemDetail = problem(HttpStatus.BAD_REQUEST, "Dados inválidos", "VALIDATION_ERROR",
                 "Um ou mais campos são inválidos.");
-        pd.setProperty("errors", errors);
-        return createResponseEntity(pd, headers, HttpStatus.BAD_REQUEST, request);
+        problemDetail.setProperty("errors", errors);
+        return createResponseEntity(problemDetail, headers, HttpStatus.BAD_REQUEST, request);
     }
 
     @Override
-    protected ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex,
+    protected ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException exception,
             HttpHeaders headers, HttpStatusCode status, WebRequest request) {
         // Não repassar ex.getMessage(): pode citar trechos do corpo enviado.
-        ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, "Requisição inválida", "VALIDATION_ERROR",
+        ProblemDetail problemDetail = problem(HttpStatus.BAD_REQUEST, "Requisição inválida", "VALIDATION_ERROR",
                 "O corpo da requisição está malformado.");
-        return createResponseEntity(pd, headers, HttpStatus.BAD_REQUEST, request);
+        return createResponseEntity(problemDetail, headers, HttpStatus.BAD_REQUEST, request);
     }
 
     @Override
-    protected ResponseEntity<Object> handleTypeMismatch(TypeMismatchException ex,
+    protected ResponseEntity<Object> handleTypeMismatch(TypeMismatchException exception,
             HttpHeaders headers, HttpStatusCode status, WebRequest request) {
         // Não repassar ex.getMessage(): ela ecoa o valor recebido.
-        ProblemDetail pd = problem(HttpStatus.BAD_REQUEST, "Parâmetro inválido", "VALIDATION_ERROR",
+        ProblemDetail problemDetail = problem(HttpStatus.BAD_REQUEST, "Parâmetro inválido", "VALIDATION_ERROR",
                 "Um parâmetro da requisição tem formato inválido.");
-        return createResponseEntity(pd, headers, HttpStatus.BAD_REQUEST, request);
+        return createResponseEntity(problemDetail, headers, HttpStatus.BAD_REQUEST, request);
     }
 
     /** Garante "code" e "requestId" também nos erros que o Spring MVC monta sozinho. */
     @Override
-    protected ResponseEntity<Object> handleExceptionInternal(Exception ex, Object body,
+    protected ResponseEntity<Object> handleExceptionInternal(Exception exception, Object body,
             HttpHeaders headers, HttpStatusCode statusCode, WebRequest request) {
-        ResponseEntity<Object> response = super.handleExceptionInternal(ex, body, headers, statusCode, request);
-        if (response != null && response.getBody() instanceof ProblemDetail pd) {
-            Map<String, Object> props = pd.getProperties();
+        ResponseEntity<Object> response = super.handleExceptionInternal(exception, body, headers, statusCode, request);
+        if (response != null && response.getBody() instanceof ProblemDetail problemDetail) {
+            Map<String, Object> props = problemDetail.getProperties();
             if (props == null || !props.containsKey("code")) {
-                pd.setProperty("code", "REQUEST_ERROR");
+                problemDetail.setProperty("code", "REQUEST_ERROR");
             }
             if (props == null || !props.containsKey("requestId")) {
-                pd.setProperty("requestId", MDC.get(RequestIdFilter.MDC_KEY));
+                problemDetail.setProperty("requestId", MDC.get(RequestIdFilter.MDC_KEY));
             }
         }
         return response;
@@ -134,20 +134,20 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     // ---------- utilitários ----------
 
     private static ProblemDetail problem(HttpStatus status, String title, String code, String detail) {
-        ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, detail);
-        pd.setTitle(title);
-        pd.setProperty("code", code);
-        pd.setProperty("requestId", MDC.get(RequestIdFilter.MDC_KEY));
-        return pd;
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, detail);
+        problemDetail.setTitle(title);
+        problemDetail.setProperty("code", code);
+        problemDetail.setProperty("requestId", MDC.get(RequestIdFilter.MDC_KEY));
+        return problemDetail;
     }
 
-    private static ConflictBody toBody(Conflict c) {
-        return new ConflictBody(c.sessionId().toString(), c.patientName(),
-                LOCAL_DATE_TIME.format(c.startsAt()), LOCAL_DATE_TIME.format(c.endsAt()));
+    private static ConflictBody toBody(Conflict conflict) {
+        return new ConflictBody(conflict.sessionId().toString(), conflict.patientName(),
+                LOCAL_DATE_TIME.format(conflict.startsAt()), LOCAL_DATE_TIME.format(conflict.endsAt()));
     }
 
-    private static Throwable rootCause(Throwable t) {
-        Throwable current = t;
+    private static Throwable rootCause(Throwable throwable) {
+        Throwable current = throwable;
         while (current.getCause() != null && current.getCause() != current) {
             current = current.getCause();
         }
@@ -155,8 +155,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     /** Só nomes de classe/método/linha: úteis para depurar e sem dados pessoais. */
-    private static String topFrames(Throwable t) {
-        return Arrays.stream(t.getStackTrace())
+    private static String topFrames(Throwable throwable) {
+        return Arrays.stream(throwable.getStackTrace())
                 .limit(8)
                 .map(StackTraceElement::toString)
                 .collect(Collectors.joining(" <- "));

@@ -238,7 +238,7 @@ function AccountCard({
 /** Administração de contas: só o perfil ADMIN chega aqui (o servidor também confere). */
 export default function AccountsPage() {
   const accounts = useAccounts()
-  const me = useMe()
+  const loggedUserQuery = useMe()
   const [credentials, setCredentials] = useState<Credentials | null>(null)
   const pending = accounts.data?.filter((account) => !account.approved) ?? []
   const approved = accounts.data?.filter((account) => account.approved) ?? []
@@ -278,7 +278,7 @@ export default function AccountsPage() {
             <AccountCard
               key={account.id}
               account={account}
-              isSelf={me.data?.username === account.email}
+              isSelf={loggedUserQuery.data?.username === account.email}
               onCredentials={setCredentials}
             />
           ))}

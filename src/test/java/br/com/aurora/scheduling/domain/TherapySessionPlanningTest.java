@@ -24,50 +24,50 @@ class TherapySessionPlanningTest {
 
     /** O id real só nasce ao gravar no banco; aqui é preciso um para ligar reagendamentos. */
     private static TherapySession newSession() {
-        TherapySession s = TherapySession.generated(OWNER, UUID.randomUUID(), UUID.randomUUID(), LocalDate.of(2026, 10, 20),
+        TherapySession session = TherapySession.generated(OWNER, UUID.randomUUID(), UUID.randomUUID(), LocalDate.of(2026, 10, 20),
                 NINE, new BigDecimal("180.00"), NOW);
-        ReflectionTestUtils.setField(s, "id", UUID.randomUUID());
-        return s;
+        ReflectionTestUtils.setField(session, "id", UUID.randomUUID());
+        return session;
     }
 
     private static void assertRule(Runnable action, String code) {
         assertThatThrownBy(action::run)
-                .isInstanceOfSatisfying(BusinessRuleException.class, e -> assertThat(e.code()).isEqualTo(code));
+                .isInstanceOfSatisfying(BusinessRuleException.class, error -> assertThat(error.code()).isEqualTo(code));
     }
 
     @Test
     @DisplayName("sessão avulsa: sem recorrência, agendada, pendente e com 50 minutos")
     void standaloneSession() {
-        TherapySession s = TherapySession.standalone(OWNER, UUID.randomUUID(), NINE, new BigDecimal("150.00"), NOW);
+        TherapySession session = TherapySession.standalone(OWNER, UUID.randomUUID(), NINE, new BigDecimal("150.00"), NOW);
 
-        assertThat(s.getRecurrenceId()).isNull();
-        assertThat(s.getOccurrenceDate()).isNull();
-        assertThat(s.getRescheduledFromId()).isNull();
-        assertThat(s.getStatus()).isEqualTo(SessionStatus.SCHEDULED);
-        assertThat(s.getPaymentStatus()).isEqualTo(PaymentStatus.PENDING);
-        assertThat(s.getDurationMinutes()).isEqualTo(50);
+        assertThat(session.getRecurrenceId()).isNull();
+        assertThat(session.getOccurrenceDate()).isNull();
+        assertThat(session.getRescheduledFromId()).isNull();
+        assertThat(session.getStatus()).isEqualTo(SessionStatus.SCHEDULED);
+        assertThat(session.getPaymentStatus()).isEqualTo(PaymentStatus.PENDING);
+        assertThat(session.getDurationMinutes()).isEqualTo(50);
     }
 
     @Test
     @DisplayName("corrigir horário: muda só o início, mantém a data de origem; repetir não muda nada")
     void changeStart() {
-        TherapySession s = newSession();
+        TherapySession session = newSession();
 
-        s.changeStart(ELEVEN, NOW);
-        s.changeStart(ELEVEN, NOW);
+        session.changeStart(ELEVEN, NOW);
+        session.changeStart(ELEVEN, NOW);
 
-        assertThat(s.getStartsAt()).isEqualTo(ELEVEN);
-        assertThat(s.getOccurrenceDate()).isEqualTo(LocalDate.of(2026, 10, 20));
-        assertThat(s.getStatus()).isEqualTo(SessionStatus.SCHEDULED);
+        assertThat(session.getStartsAt()).isEqualTo(ELEVEN);
+        assertThat(session.getOccurrenceDate()).isEqualTo(LocalDate.of(2026, 10, 20));
+        assertThat(session.getStatus()).isEqualTo(SessionStatus.SCHEDULED);
     }
 
     @Test
     @DisplayName("corrigir horário só vale para sessão AGENDADA: SESSION_NOT_SCHEDULED")
     void changeStartOnlyWhenScheduled() {
-        TherapySession s = newSession();
-        s.confirm(NOW);
+        TherapySession session = newSession();
+        session.confirm(NOW);
 
-        assertRule(() -> s.changeStart(ELEVEN, NOW), "SESSION_NOT_SCHEDULED");
+        assertRule(() -> session.changeStart(ELEVEN, NOW), "SESSION_NOT_SCHEDULED");
     }
 
     @Test
@@ -182,14 +182,14 @@ class TherapySessionPlanningTest {
     @Test
     @DisplayName("reabrir não mexe no pagamento")
     void reopenKeepsThePayment() {
-        TherapySession s = newSession();
-        s.markPaid(NOW);
-        s.cancel(CancellationType.EARLY, NOW);
+        TherapySession session = newSession();
+        session.markPaid(NOW);
+        session.cancel(CancellationType.EARLY, NOW);
 
-        s.reopen(NOW);
+        session.reopen(NOW);
 
-        assertThat(s.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
-        assertThat(s.isBillable()).isTrue();
+        assertThat(session.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+        assertThat(session.isBillable()).isTrue();
     }
 
     @Test

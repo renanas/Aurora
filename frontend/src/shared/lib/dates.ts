@@ -12,35 +12,35 @@ const WEEKDAYS_FULL = [
   'sábado',
 ];
 
-function pad(n: number): string {
-  return String(n).padStart(2, '0');
+function pad(value: number): string {
+  return String(value).padStart(2, '0');
 }
 
 /** Data local como "2026-09-28". */
-export function toDateString(d: Date): string {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+export function toDateString(date: Date): string {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 /** "2026-09-28" → Date local à meia-noite; null se o formato ou a data forem inválidos (ex.: 2026-02-31). */
-export function parseDateString(s: string): Date | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-  if (!m) return null;
-  const year = Number(m[1]);
-  const month = Number(m[2]);
-  const day = Number(m[3]);
-  const d = new Date(year, month - 1, day);
-  if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return null;
-  return d;
+export function parseDateString(dateText: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateText);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+  return date;
 }
 
-export function addDays(d: Date, days: number): Date {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + days);
+export function addDays(date: Date, days: number): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
 }
 
 /** Segunda-feira da semana de d (a semana da agenda começa na segunda). */
-export function startOfWeek(d: Date): Date {
-  const sinceMonday = (d.getDay() + 6) % 7;
-  return addDays(d, -sinceMonday);
+export function startOfWeek(date: Date): Date {
+  const sinceMonday = (date.getDay() + 6) % 7;
+  return addDays(date, -sinceMonday);
 }
 
 /** Parte da data de "2026-09-28T09:00". */
@@ -59,22 +59,22 @@ export function minutesOfDay(dateTime: string): number {
   return Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
 }
 
-export function weekdayShort(d: Date): string {
-  return WEEKDAYS_SHORT[d.getDay()];
+export function weekdayShort(date: Date): string {
+  return WEEKDAYS_SHORT[date.getDay()];
 }
 
-export function weekdayFull(d: Date): string {
-  return WEEKDAYS_FULL[d.getDay()];
+export function weekdayFull(date: Date): string {
+  return WEEKDAYS_FULL[date.getDay()];
 }
 
 /** "28/09" */
-export function formatDayMonth(d: Date): string {
-  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
+export function formatDayMonth(date: Date): string {
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}`;
 }
 
 /** "2026-09-28" → "28/09/2026" (devolve o texto original se for inválido). */
-export function formatDateBR(s: string): string {
-  const d = parseDateString(s);
-  if (!d) return s;
-  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+export function formatDateBR(dateText: string): string {
+  const date = parseDateString(dateText);
+  if (!date) return dateText;
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
 }

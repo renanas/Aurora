@@ -67,26 +67,26 @@ class EarningsCalculatorTest {
                 entry(MONDAY.plusDays(2), 9, SessionStatus.CANCELLED, false, true, "90.00"), // cedo, mas paga
                 entry(MONDAY.plusDays(2), 10, SessionStatus.RESCHEDULED, false, false, "180.00"));
 
-        Result r = EarningsCalculator.calculate(entries, MONDAY, MONDAY.plusDays(6), GroupBy.DAY, NOW);
+        Result result = EarningsCalculator.calculate(entries, MONDAY, MONDAY.plusDays(6), GroupBy.DAY, NOW);
 
-        assertThat(r.received()).isEqualByComparingTo("180");
-        assertThat(r.receivable()).isEqualByComparingTo("200");
-        assertThat(r.expected()).isEqualByComparingTo("150");
-        assertThat(r.total()).isEqualByComparingTo("530");
-        assertThat(r.paidNotBillableAmount()).isEqualByComparingTo("90");
-        assertThat(r.paidNotBillableCount()).isEqualTo(1);
+        assertThat(result.received()).isEqualByComparingTo("180");
+        assertThat(result.receivable()).isEqualByComparingTo("200");
+        assertThat(result.expected()).isEqualByComparingTo("150");
+        assertThat(result.total()).isEqualByComparingTo("530");
+        assertThat(result.paidNotBillableAmount()).isEqualByComparingTo("90");
+        assertThat(result.paidNotBillableCount()).isEqualTo(1);
     }
 
     @Test
     @DisplayName("período sem sessões: tudo zero e uma barra por dia")
     void emptyPeriod() {
-        Result r = EarningsCalculator.calculate(List.of(), MONDAY, MONDAY.plusDays(6), GroupBy.DAY, NOW);
+        Result result = EarningsCalculator.calculate(List.of(), MONDAY, MONDAY.plusDays(6), GroupBy.DAY, NOW);
 
-        assertThat(r.total()).isEqualByComparingTo("0");
-        assertThat(r.periods()).hasSize(7);
-        assertThat(r.periods()).allSatisfy(p -> assertThat(p.received()).isEqualByComparingTo("0"));
-        assertThat(r.receivableEntries()).isEmpty();
-        assertThat(r.sessionsWithoutOutcome()).isZero();
+        assertThat(result.total()).isEqualByComparingTo("0");
+        assertThat(result.periods()).hasSize(7);
+        assertThat(result.periods()).allSatisfy(period -> assertThat(period.received()).isEqualByComparingTo("0"));
+        assertThat(result.receivableEntries()).isEmpty();
+        assertThat(result.sessionsWithoutOutcome()).isZero();
     }
 
     @Test
@@ -142,10 +142,10 @@ class EarningsCalculatorTest {
                 billable(MONDAY.plusDays(4), SessionStatus.SCHEDULED, false, "100"), // sexta: futuro
                 billable(MONDAY, SessionStatus.SCHEDULED, true, "100"));            // passou, mas paga
 
-        Result r = EarningsCalculator.calculate(entries, MONDAY, MONDAY.plusDays(6), GroupBy.DAY, NOW);
+        Result result = EarningsCalculator.calculate(entries, MONDAY, MONDAY.plusDays(6), GroupBy.DAY, NOW);
 
-        assertThat(r.expected()).isEqualByComparingTo("400");
-        assertThat(r.sessionsWithoutOutcome()).isEqualTo(2);
+        assertThat(result.expected()).isEqualByComparingTo("400");
+        assertThat(result.sessionsWithoutOutcome()).isEqualTo(2);
     }
 
     @Test
@@ -155,9 +155,9 @@ class EarningsCalculatorTest {
         Entry early = billable(MONDAY, SessionStatus.COMPLETED, false, "100");
         List<Entry> entries = List.of(late, billable(MONDAY, SessionStatus.COMPLETED, true, "100"), early);
 
-        Result r = EarningsCalculator.calculate(entries, MONDAY, MONDAY.plusDays(6), GroupBy.DAY, NOW);
+        Result result = EarningsCalculator.calculate(entries, MONDAY, MONDAY.plusDays(6), GroupBy.DAY, NOW);
 
-        assertThat(r.receivableEntries()).containsExactly(early, late);
+        assertThat(result.receivableEntries()).containsExactly(early, late);
     }
 
     @Test
@@ -167,10 +167,10 @@ class EarningsCalculatorTest {
                 billable(MONDAY.minusDays(1), SessionStatus.COMPLETED, true, "100"),
                 billable(MONDAY.plusDays(7), SessionStatus.COMPLETED, true, "100"));
 
-        Result r = EarningsCalculator.calculate(entries, MONDAY, MONDAY.plusDays(6), GroupBy.WEEK, NOW);
+        Result result = EarningsCalculator.calculate(entries, MONDAY, MONDAY.plusDays(6), GroupBy.WEEK, NOW);
 
-        assertThat(r.total()).isEqualByComparingTo("0");
-        assertThat(r.periods()).hasSize(1);
-        assertThat(money("0.00")).isEqualByComparingTo(r.received());
+        assertThat(result.total()).isEqualByComparingTo("0");
+        assertThat(result.periods()).hasSize(1);
+        assertThat(money("0.00")).isEqualByComparingTo(result.received());
     }
 }

@@ -4,10 +4,10 @@ export function formatMoney(value: number): string {
 
 /** 5511999998888 -> +55 (11) 99999-8888. Formatos desconhecidos são devolvidos como vieram. */
 export function formatPhone(digits: string): string {
-  const d = digits.replace(/\D/g, '')
+  const onlyDigits = digits.replace(/\D/g, '')
 
-  const withCountry = d.startsWith('55') && (d.length === 12 || d.length === 13)
-  const local = withCountry ? d.slice(2) : d
+  const withCountry = onlyDigits.startsWith('55') && (onlyDigits.length === 12 || onlyDigits.length === 13)
+  const local = withCountry ? onlyDigits.slice(2) : onlyDigits
   if (local.length !== 10 && local.length !== 11) {
     return digits
   }

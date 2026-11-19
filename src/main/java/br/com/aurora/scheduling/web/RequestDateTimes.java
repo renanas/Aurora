@@ -16,7 +16,7 @@ final class RequestDateTimes {
     static LocalDateTime parse(String text) {
         try {
             return LocalDateTime.parse(text);
-        } catch (DateTimeParseException e) {
+        } catch (DateTimeParseException exception) {
             throw new BusinessRuleException("INVALID_DATE_TIME", "Essa data não existe no calendário.");
         }
     }

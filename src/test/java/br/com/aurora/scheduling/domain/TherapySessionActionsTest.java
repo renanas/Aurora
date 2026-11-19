@@ -27,18 +27,18 @@ class TherapySessionActionsTest {
 
     private static void assertRule(Runnable action, String code) {
         assertThatThrownBy(action::run)
-                .isInstanceOfSatisfying(BusinessRuleException.class, e -> assertThat(e.code()).isEqualTo(code));
+                .isInstanceOfSatisfying(BusinessRuleException.class, error -> assertThat(error.code()).isEqualTo(code));
     }
 
     @Test
     @DisplayName("confirmar: AGENDADA vira CONFIRMADA, e repetir não muda nada")
     void confirmIsIdempotent() {
-        TherapySession s = newSession();
+        TherapySession session = newSession();
 
-        s.confirm(NOW);
-        s.confirm(NOW);
+        session.confirm(NOW);
+        session.confirm(NOW);
 
-        assertThat(s.getStatus()).isEqualTo(SessionStatus.CONFIRMED);
+        assertThat(session.getStatus()).isEqualTo(SessionStatus.CONFIRMED);
     }
 
     @Test
@@ -57,12 +57,12 @@ class TherapySessionActionsTest {
     @Test
     @DisplayName("falta: continua cobrável")
     void noShowStaysBillable() {
-        TherapySession s = newSession();
+        TherapySession session = newSession();
 
-        s.markNoShow(NOW);
+        session.markNoShow(NOW);
 
-        assertThat(s.getStatus()).isEqualTo(SessionStatus.NO_SHOW);
-        assertThat(s.isBillable()).isTrue();
+        assertThat(session.getStatus()).isEqualTo(SessionStatus.NO_SHOW);
+        assertThat(session.isBillable()).isTrue();
     }
 
     @Test
@@ -101,64 +101,64 @@ class TherapySessionActionsTest {
     @Test
     @DisplayName("cancelar de novo: repetir é inofensivo e outro tipo corrige o tipo")
     void cancelAgainOnlyCorrectsTheType() {
-        TherapySession s = newSession();
-        s.cancel(CancellationType.EARLY, NOW);
+        TherapySession session = newSession();
+        session.cancel(CancellationType.EARLY, NOW);
 
-        s.cancel(CancellationType.EARLY, NOW);
-        assertThat(s.getCancellationType()).isEqualTo(CancellationType.EARLY);
+        session.cancel(CancellationType.EARLY, NOW);
+        assertThat(session.getCancellationType()).isEqualTo(CancellationType.EARLY);
 
-        s.cancel(CancellationType.LATE, NOW);
-        assertThat(s.getStatus()).isEqualTo(SessionStatus.CANCELLED);
-        assertThat(s.getCancellationType()).isEqualTo(CancellationType.LATE);
+        session.cancel(CancellationType.LATE, NOW);
+        assertThat(session.getStatus()).isEqualTo(SessionStatus.CANCELLED);
+        assertThat(session.getCancellationType()).isEqualTo(CancellationType.LATE);
     }
 
     @Test
     @DisplayName("pagar: guarda quando foi pago e repetir não muda a data")
     void payingKeepsTheFirstPaymentTime() {
-        TherapySession s = newSession();
+        TherapySession session = newSession();
         Instant first = Instant.parse("2026-09-29T15:00:00Z");
 
-        s.markPaid(first);
-        s.markPaid(Instant.parse("2026-09-30T15:00:00Z"));
+        session.markPaid(first);
+        session.markPaid(Instant.parse("2026-09-30T15:00:00Z"));
 
-        assertThat(s.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
-        assertThat(s.getPaidAt()).isEqualTo(first);
+        assertThat(session.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+        assertThat(session.getPaidAt()).isEqualTo(first);
     }
 
     @Test
     @DisplayName("desfazer pagamento: volta a pendente e apaga a data")
     void undoingPayment() {
-        TherapySession s = newSession();
-        s.markPaid(NOW);
+        TherapySession session = newSession();
+        session.markPaid(NOW);
 
-        s.markPending(NOW);
-        s.markPending(NOW);
+        session.markPending(NOW);
+        session.markPending(NOW);
 
-        assertThat(s.getPaymentStatus()).isEqualTo(PaymentStatus.PENDING);
-        assertThat(s.getPaidAt()).isNull();
+        assertThat(session.getPaymentStatus()).isEqualTo(PaymentStatus.PENDING);
+        assertThat(session.getPaidAt()).isNull();
     }
 
     @Test
     @DisplayName("sessão não cobrada não recebe pagamento: SESSION_NOT_BILLABLE")
     void notBillableCannotBePaid() {
-        TherapySession s = newSession();
-        s.cancel(CancellationType.EARLY, NOW);
+        TherapySession session = newSession();
+        session.cancel(CancellationType.EARLY, NOW);
 
-        assertRule(() -> s.markPaid(NOW), "SESSION_NOT_BILLABLE");
-        assertThat(s.getPaymentStatus()).isEqualTo(PaymentStatus.PENDING);
+        assertRule(() -> session.markPaid(NOW), "SESSION_NOT_BILLABLE");
+        assertThat(session.getPaymentStatus()).isEqualTo(PaymentStatus.PENDING);
     }
 
     @Test
     @DisplayName("cancelar com antecedência uma sessão já paga mantém o pagamento, e dá para desfazê-lo")
     void cancellingAPaidSessionKeepsThePayment() {
-        TherapySession s = newSession();
-        s.markPaid(NOW);
+        TherapySession session = newSession();
+        session.markPaid(NOW);
 
-        s.cancel(CancellationType.EARLY, NOW);
+        session.cancel(CancellationType.EARLY, NOW);
 
-        assertThat(s.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
-        assertThat(s.isBillable()).isFalse();
-        assertThatCode(() -> s.markPending(NOW)).doesNotThrowAnyException();
-        assertThat(s.getPaymentStatus()).isEqualTo(PaymentStatus.PENDING);
+        assertThat(session.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+        assertThat(session.isBillable()).isFalse();
+        assertThatCode(() -> session.markPending(NOW)).doesNotThrowAnyException();
+        assertThat(session.getPaymentStatus()).isEqualTo(PaymentStatus.PENDING);
     }
 }

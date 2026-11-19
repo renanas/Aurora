@@ -91,22 +91,22 @@ class SchedulingApiTest {
     }
 
     private int sessionCount(String patientId) {
-        Integer n = jdbc.queryForObject("SELECT count(*) FROM therapy_session WHERE patient_id = ?",
+        Integer rowCount = jdbc.queryForObject("SELECT count(*) FROM therapy_session WHERE patient_id = ?",
                 Integer.class, UUID.fromString(patientId));
-        return n == null ? 0 : n;
+        return rowCount == null ? 0 : rowCount;
     }
 
     private int recurrenceCount(String patientId) {
-        Integer n = jdbc.queryForObject("SELECT count(*) FROM recurrence WHERE patient_id = ?",
+        Integer rowCount = jdbc.queryForObject("SELECT count(*) FROM recurrence WHERE patient_id = ?",
                 Integer.class, UUID.fromString(patientId));
-        return n == null ? 0 : n;
+        return rowCount == null ? 0 : rowCount;
     }
 
     private int activeRecurrenceCount(String patientId) {
-        Integer n = jdbc.queryForObject(
+        Integer rowCount = jdbc.queryForObject(
                 "SELECT count(*) FROM recurrence WHERE patient_id = ? AND ends_on IS NULL",
                 Integer.class, UUID.fromString(patientId));
-        return n == null ? 0 : n;
+        return rowCount == null ? 0 : rowCount;
     }
 
     private void updateFirstSession(String patientId, String setClause) {

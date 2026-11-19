@@ -114,7 +114,7 @@ public class RecurrenceService {
         List<TherapySession> disposable = sessions
                 .findFutureUntouched(recurrence.getId(), fromDate, now, SessionStatus.SCHEDULED, PaymentStatus.PENDING)
                 .stream()
-                .filter(s -> s.getStartsAt().equals(s.getOccurrenceDate().atTime(recurrence.getStartTime())))
+                .filter(session -> session.getStartsAt().equals(session.getOccurrenceDate().atTime(recurrence.getStartTime())))
                 .toList();
         sessions.deleteAll(disposable);
         sessions.flush();

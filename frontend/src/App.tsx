@@ -22,8 +22,8 @@ function NarrowLayout() {
 }
 
 function Layout() {
-  const me = useMe()
-  const isAdmin = me.data?.role === 'ADMIN'
+  const loggedUserQuery = useMe()
+  const isAdmin = loggedUserQuery.data?.role === 'ADMIN'
 
   return (
     <div className="min-h-screen">

@@ -102,17 +102,17 @@ function Chart({ earnings }: { earnings: Earnings }) {
 function Warnings({ earnings }: { earnings: Earnings }) {
   const items: string[] = []
   if (earnings.sessionsWithoutOutcome > 0) {
-    const n = earnings.sessionsWithoutOutcome
+    const count = earnings.sessionsWithoutOutcome
     items.push(
-      n === 1
+      count === 1
         ? '1 sessão já passou e continua agendada. Marque se foi realizada, falta ou cancelada; até lá ela conta como prevista.'
-        : `${n} sessões já passaram e continuam agendadas. Marque se foram realizadas, faltas ou canceladas; até lá elas contam como previstas.`,
+        : `${count} sessões já passaram e continuam agendadas. Marque se foram realizadas, faltas ou canceladas; até lá elas contam como previstas.`,
     )
   }
   if (earnings.paidNotBillable.count > 0) {
-    const n = earnings.paidNotBillable.count
+    const count = earnings.paidNotBillable.count
     items.push(
-      `Pagas em sessões não cobradas: ${formatMoney(earnings.paidNotBillable.amount)} (${n} ${n === 1 ? 'sessão' : 'sessões'}). ` +
+      `Pagas em sessões não cobradas: ${formatMoney(earnings.paidNotBillable.amount)} (${count} ${count === 1 ? 'sessão' : 'sessões'}). ` +
         'Esse valor não entra nos totais acima, mas aparece no extrato do banco.',
     )
   }
@@ -141,21 +141,21 @@ function ReceivableList({ earnings }: { earnings: Earnings }) {
         <p className="mt-2 text-slate-500">Nada a receber neste período.</p>
       ) : (
         <ul className="mt-2 divide-y divide-slate-100">
-          {earnings.receivableSessions.map((s) => {
-            const date = dateOf(s.startsAt)
+          {earnings.receivableSessions.map((receivableSession) => {
+            const date = dateOf(receivableSession.startsAt)
             const week = toDateString(startOfWeek(new Date(`${date}T00:00`)))
             return (
-              <li key={s.sessionId} className="flex flex-wrap items-center justify-between gap-2 py-2">
+              <li key={receivableSession.sessionId} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <div className="min-w-0">
-                  <p className="truncate font-medium text-slate-900">{s.patientName}</p>
+                  <p className="truncate font-medium text-slate-900">{receivableSession.patientName}</p>
                   <p className="text-sm text-slate-600">
                     <Link to={`/agenda?week=${week}`} className="text-indigo-700 underline">
-                      {formatDateBR(date)} às {timeOf(s.startsAt)}
+                      {formatDateBR(date)} às {timeOf(receivableSession.startsAt)}
                     </Link>{' '}
-                    · {statusLabel[s.status]}
+                    · {statusLabel[receivableSession.status]}
                   </p>
                 </div>
-                <span className="font-medium text-slate-900">{formatMoney(s.amount)}</span>
+                <span className="font-medium text-slate-900">{formatMoney(receivableSession.amount)}</span>
               </li>
             )
           })}

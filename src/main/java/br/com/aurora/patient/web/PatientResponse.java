@@ -6,7 +6,7 @@ import java.util.UUID;
 
 public record PatientResponse(UUID id, String name, String whatsapp, BigDecimal sessionPrice, boolean active) {
 
-    static PatientResponse from(PatientDetails d) {
-        return new PatientResponse(d.id(), d.name(), d.whatsapp(), d.sessionPrice(), d.active());
+    static PatientResponse from(PatientDetails details) {
+        return new PatientResponse(details.id(), details.name(), details.whatsapp(), details.sessionPrice(), details.active());
     }
 }

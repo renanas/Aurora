@@ -130,8 +130,8 @@ class SessionPlanningApiTest {
     }
 
     private int sessionCount() {
-        Integer n = jdbc.queryForObject("SELECT count(*) FROM therapy_session", Integer.class);
-        return n == null ? 0 : n;
+        Integer rowCount = jdbc.queryForObject("SELECT count(*) FROM therapy_session", Integer.class);
+        return rowCount == null ? 0 : rowCount;
     }
 
     private String columnOf(String id, String column) {
