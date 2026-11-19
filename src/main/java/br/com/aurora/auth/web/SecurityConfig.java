@@ -1,5 +1,6 @@
 package br.com.aurora.auth.web;
 
+import br.com.aurora.auth.application.AccountService;
 import br.com.aurora.auth.application.LoginAttemptLimiter;
 import br.com.aurora.auth.application.LoginKeys;
 import java.time.Clock;
@@ -7,16 +8,19 @@ import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.savedrequest.NullRequestCache;
 
@@ -24,7 +28,7 @@ import org.springframework.security.web.savedrequest.NullRequestCache;
  * Autenticação do Aurora: contas no banco (tabela app_user), sessão por cookie, tudo no mesmo
  * domínio (sem CORS).
  *
- *  - Todo /api/** exige login; só /actuator/health é público. O que não é /api nem health é negado
+ *  - Todo /api/** exige login, menos o cadastro (POST /api/auth/register, que ainda exige CSRF); /api/admin/** exige o perfil ADMIN; só /actuator/health é público. O que não é /api nem health é negado
  *    (nada sai sem sessão; o deploy decide depois como servir o frontend).
  *  - Login: POST /api/auth/login com formulário (username = e-mail, password) -> 204. Logout: POST
  *    /api/auth/logout -> 204. Erros no formato Problem Details com "code".
@@ -33,6 +37,8 @@ import org.springframework.security.web.savedrequest.NullRequestCache;
  *  - As contas vêm do banco (DatabaseUserDetailsService). A conta inicial do administrador é criada
  *    na subida por AdminBootstrap, a partir de AURORA_AUTH_USERNAME / AURORA_AUTH_PASSWORD.
  *  - Tentativas de login: 5 falhas seguidas num e-mail bloqueiam aquele e-mail por 15 minutos.
+ *  - A cada requisição a conta é reconferida no banco (SessionAccountFilter): conta desativada perde a sessão
+ *    na hora e senha provisória pendente só deixa trocar a senha.
  */
 @Configuration
 @EnableWebSecurity
@@ -56,6 +62,7 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             LoginAttemptLimiter limiter,
+            AccountService accounts,
             @Value("${server.servlet.session.cookie.secure:false}") boolean secureCookies) throws Exception {
 
         // Mesmos atributos do cookie de sessão: SameSite=Strict e Secure conforme o ambiente.
@@ -65,6 +72,8 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().denyAll())
                 .csrf(csrf -> csrf
@@ -74,6 +83,7 @@ public class SecurityConfig {
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
                 .addFilterBefore(new LoginThrottleFilter(limiter), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new SessionAccountFilter(accounts), AuthorizationFilter.class)
                 .formLogin(form -> form
                         .loginPage("/login") // rota do frontend; impede a página de login padrão do Spring
                         .loginProcessingUrl(LoginThrottleFilter.LOGIN_PATH)
@@ -82,7 +92,7 @@ public class SecurityConfig {
                             response.setStatus(HttpStatus.NO_CONTENT.value());
                         })
                         .failureHandler((request, response, exception) -> {
-                            // Mesma resposta para e-mail inexistente, senha errada e conta desativada.
+                            // Mesma resposta para e-mail inexistente, senha errada, conta desativada e cadastro não aprovado.
                             limiter.recordFailure(LoginKeys.of(request.getParameter(LoginThrottleFilter.USERNAME_PARAM)));
                             JsonProblemWriter.write(response, 401, "Credenciais inválidas",
                                     "BAD_CREDENTIALS", "Usuário ou senha incorretos.");
@@ -95,9 +105,15 @@ public class SecurityConfig {
                         .authenticationEntryPoint((request, response, exception) ->
                                 JsonProblemWriter.write(response, 401, "Não autenticado",
                                         "UNAUTHENTICATED", "É preciso entrar para continuar."))
-                        .accessDeniedHandler((request, response, exception) ->
+                        .accessDeniedHandler((request, response, exception) -> {
+                            if (exception instanceof CsrfException) {
                                 JsonProblemWriter.write(response, 403, "Acesso negado", "FORBIDDEN",
-                                        "A página ficou desatualizada. Atualize e tente de novo.")))
+                                        "A página ficou desatualizada. Atualize e tente de novo.");
+                            } else {
+                                JsonProblemWriter.write(response, 403, "Acesso negado", "NOT_ALLOWED",
+                                        "Você não tem permissão para fazer isso.");
+                            }
+                        }))
                 // Sem sessão só para "lembrar a URL pedida": a SPA não precisa disso.
                 .requestCache(cache -> cache.requestCache(new NullRequestCache()));
 

@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,35 +27,45 @@ class SchemaConstraintsTest {
 
     private static final LocalDateTime NINE = LocalDateTime.of(2026, 9, 28, 9, 0);
 
+    /** Dona de todos os registros (desde a V4, paciente, recorrência e sessão têm dona). */
+    private static final String OWNER = "00000000-0000-0000-0000-00000000a0a0";
+
     @Autowired
     JdbcTemplate jdbc;
+
+    /** Roda dentro da transação do teste: a conta some no rollback. */
+    @BeforeEach
+    void createOwner() {
+        jdbc.update("INSERT INTO app_user (id, email, password_hash, display_name, role) "
+                + "VALUES ('" + OWNER + "', 'dona@aurora.test', 'hash', 'Dona', 'PSYCHOLOGIST')");
+    }
 
     // ---------- helpers ----------
 
     private UUID patient() {
         return jdbc.queryForObject(
-                "INSERT INTO patient (name, whatsapp, session_price) VALUES ('Maria', '5511999998888', 180) RETURNING id",
+                "INSERT INTO patient (psychologist_id, name, whatsapp, session_price) VALUES ('" + OWNER + "', 'Maria', '5511999998888', 180) RETURNING id",
                 UUID.class);
     }
 
     private UUID recurrence(UUID patientId, LocalDate endsOn) {
         return jdbc.queryForObject(
-                "INSERT INTO recurrence (patient_id, anchor_date, start_time, frequency, ends_on) "
-                        + "VALUES (?, '2026-09-28', '09:00', 'WEEKLY', ?) RETURNING id",
+                "INSERT INTO recurrence (psychologist_id, patient_id, anchor_date, start_time, frequency, ends_on) "
+                        + "VALUES ('" + OWNER + "', ?, '2026-09-28', '09:00', 'WEEKLY', ?) RETURNING id",
                 UUID.class, patientId, endsOn);
     }
 
     private UUID session(UUID patientId, LocalDateTime startsAt) {
         return jdbc.queryForObject(
-                "INSERT INTO therapy_session (patient_id, starts_at, amount) VALUES (?, ?, 180) RETURNING id",
+                "INSERT INTO therapy_session (psychologist_id, patient_id, starts_at, amount) VALUES ('" + OWNER + "', ?, ?, 180) RETURNING id",
                 UUID.class, patientId, startsAt);
     }
 
     private UUID rescheduledSession(UUID patientId, UUID originalId, String status) {
         String cancellation = "CANCELLED".equals(status) ? "'EARLY'" : "NULL";
         return jdbc.queryForObject(
-                "INSERT INTO therapy_session (patient_id, starts_at, amount, rescheduled_from_id, status, cancellation_type) "
-                        + "VALUES (?, '2026-09-30 10:00', 180, ?, ?, " + cancellation + ") RETURNING id",
+                "INSERT INTO therapy_session (psychologist_id, patient_id, starts_at, amount, rescheduled_from_id, status, cancellation_type) "
+                        + "VALUES ('" + OWNER + "', ?, '2026-09-30 10:00', 180, ?, ?, " + cancellation + ") RETURNING id",
                 UUID.class, patientId, originalId, status);
     }
 
@@ -108,8 +119,8 @@ class SchemaConstraintsTest {
     void sameOccurrenceCannotBeGeneratedTwice() {
         UUID p = patient();
         UUID r = recurrence(p, null);
-        String sql = "INSERT INTO therapy_session (patient_id, recurrence_id, occurrence_date, starts_at, amount) "
-                + "VALUES (?, ?, '2026-09-28', '2026-09-28 09:00', 180)";
+        String sql = "INSERT INTO therapy_session (psychologist_id, patient_id, recurrence_id, occurrence_date, starts_at, amount) "
+                + "VALUES ('" + OWNER + "', ?, ?, '2026-09-28', '2026-09-28 09:00', 180)";
         jdbc.update(sql, p, r);
 
         assertThatThrownBy(() -> jdbc.update(sql, p, r))
@@ -122,8 +133,8 @@ class SchemaConstraintsTest {
         UUID p = patient();
 
         assertThatThrownBy(() -> jdbc.update(
-                "INSERT INTO therapy_session (patient_id, starts_at, amount, status) "
-                        + "VALUES (?, ?, 180, 'CANCELLED')", p, NINE))
+                "INSERT INTO therapy_session (psychologist_id, patient_id, starts_at, amount, status) "
+                        + "VALUES ('" + OWNER + "', ?, ?, 180, 'CANCELLED')", p, NINE))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -133,8 +144,8 @@ class SchemaConstraintsTest {
         UUID p = patient();
 
         assertThatThrownBy(() -> jdbc.update(
-                "INSERT INTO therapy_session (patient_id, starts_at, amount, status, cancellation_type) "
-                        + "VALUES (?, ?, 180, 'SCHEDULED', 'LATE')", p, NINE))
+                "INSERT INTO therapy_session (psychologist_id, patient_id, starts_at, amount, status, cancellation_type) "
+                        + "VALUES ('" + OWNER + "', ?, ?, 180, 'SCHEDULED', 'LATE')", p, NINE))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -143,8 +154,8 @@ class SchemaConstraintsTest {
     void noShowCanBePaid() {
         UUID p = patient();
 
-        jdbc.update("INSERT INTO therapy_session (patient_id, starts_at, amount, status, payment_status, paid_at) "
-                + "VALUES (?, ?, 180, 'NO_SHOW', 'PAID', now())", p, NINE);
+        jdbc.update("INSERT INTO therapy_session (psychologist_id, patient_id, starts_at, amount, status, payment_status, paid_at) "
+                + "VALUES ('" + OWNER + "', ?, ?, 180, 'NO_SHOW', 'PAID', now())", p, NINE);
 
         String status = jdbc.queryForObject("SELECT status FROM therapy_session", String.class);
         String payment = jdbc.queryForObject("SELECT payment_status FROM therapy_session", String.class);
@@ -158,8 +169,8 @@ class SchemaConstraintsTest {
         UUID p = patient();
 
         assertThatThrownBy(() -> jdbc.update(
-                "INSERT INTO therapy_session (patient_id, starts_at, amount, payment_status) "
-                        + "VALUES (?, ?, 180, 'PAID')", p, NINE))
+                "INSERT INTO therapy_session (psychologist_id, patient_id, starts_at, amount, payment_status) "
+                        + "VALUES ('" + OWNER + "', ?, ?, 180, 'PAID')", p, NINE))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 

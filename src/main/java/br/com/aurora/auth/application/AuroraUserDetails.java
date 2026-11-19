@@ -13,7 +13,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 /**
  * Quem está logada, como o Spring Security enxerga. Guarda o id da conta (a F2 usa para isolar os
- * dados por psicóloga) e o nome para exibir. Conta desativada aparece como não habilitada e não
+ * dados por psicóloga) e o nome para exibir. Conta desativada ou aguardando aprovação aparece como não habilitada e não
  * entra. O hash da senha é apagado daqui depois do login.
  */
 public final class AuroraUserDetails implements UserDetails, CredentialsContainer, Serializable {
@@ -40,7 +40,7 @@ public final class AuroraUserDetails implements UserDetails, CredentialsContaine
 
     static AuroraUserDetails from(AppUser user) {
         return new AuroraUserDetails(user.id(), user.email(), user.passwordHash(), user.displayName(),
-                user.role().name(), user.isActive());
+                user.role().name(), user.canLogIn());
     }
 
     public UUID id() {

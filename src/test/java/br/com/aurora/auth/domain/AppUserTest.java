@@ -79,4 +79,86 @@ class AppUserTest {
 
         assertThat(user.isActive()).isFalse();
     }
+
+    @Test
+    @DisplayName("ativar de novo uma conta desativada")
+    void activate() {
+        AppUser user = ana();
+        user.deactivate();
+
+        user.activate();
+
+        assertThat(user.isActive()).isTrue();
+    }
+
+    @Test
+    @DisplayName("trocar a própria senha grava o novo hash e tira a obrigação de trocar")
+    void changePasswordClearsTheFlag() {
+        AppUser user = ana(); // nasce com troca obrigatória
+
+        user.changePassword("hash-novo");
+
+        assertThat(user.passwordHash()).isEqualTo("hash-novo");
+        assertThat(user.mustChangePassword()).isFalse();
+    }
+
+    @Test
+    @DisplayName("redefinir a senha grava o hash provisório e obriga a trocar")
+    void resetPasswordForcesTheChange() {
+        AppUser user = AppUser.create("bia@aurora.test", "hash", "Bia", Role.PSYCHOLOGIST, false, NOW);
+
+        user.resetPassword("hash-provisorio");
+
+        assertThat(user.passwordHash()).isEqualTo("hash-provisorio");
+        assertThat(user.mustChangePassword()).isTrue();
+    }
+
+    @Test
+    @DisplayName("trocar ou redefinir exige um hash")
+    void newHashIsRequired() {
+        assertThatThrownBy(() -> ana().changePassword(" ")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ana().resetPassword(null)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("conta criada diretamente já nasce aprovada")
+    void createdAccountIsApproved() {
+        assertThat(ana().isApproved()).isTrue();
+        assertThat(ana().canLogIn()).isTrue();
+    }
+
+    @Test
+    @DisplayName("cadastro pela própria pessoa: psicóloga, normalizada, sem troca obrigatória e aguardando aprovação")
+    void registerWaitsForApproval() {
+        AppUser user = AppUser.register(" Bia@Aurora.Test ", "hash", " Bia ", NOW);
+
+        assertThat(user.email()).isEqualTo("bia@aurora.test");
+        assertThat(user.displayName()).isEqualTo("Bia");
+        assertThat(user.role()).isEqualTo(Role.PSYCHOLOGIST);
+        assertThat(user.mustChangePassword()).isFalse();
+        assertThat(user.isActive()).isTrue();
+        assertThat(user.isApproved()).isFalse();
+        assertThat(user.canLogIn()).isFalse();
+    }
+
+    @Test
+    @DisplayName("aprovar libera a entrada; desativada continua sem entrar")
+    void approveAllowsLogin() {
+        AppUser user = AppUser.register("bia@aurora.test", "hash", "Bia", NOW);
+
+        user.approve();
+        assertThat(user.canLogIn()).isTrue();
+
+        user.deactivate();
+        assertThat(user.canLogIn()).isFalse();
+    }
+
+    @Test
+    @DisplayName("cadastro valida os dados como a criação")
+    void registerValidates() {
+        assertThatThrownBy(() -> AppUser.register("sem-arroba", "hash", "Bia", NOW))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> AppUser.register("bia@aurora.test", "hash", "  ", NOW))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }

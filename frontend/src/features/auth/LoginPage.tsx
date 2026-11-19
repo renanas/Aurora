@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router'
 import { ApiError } from '../../shared/api/client'
 import { AUTH_KEY, login } from './api'
 
@@ -77,6 +78,13 @@ export default function LoginPage() {
         >
           {mutation.isPending ? 'Entrando…' : 'Entrar'}
         </button>
+
+        <p className="mt-4 text-center text-slate-600">
+          Ainda não tem conta?{' '}
+          <Link to="/cadastro" className="text-indigo-700 underline">
+            Criar conta
+          </Link>
+        </p>
       </form>
     </div>
   )

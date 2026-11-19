@@ -48,6 +48,10 @@ public class AppUser {
     @Column(name = "must_change_password", nullable = false)
     private boolean mustChangePassword;
 
+    /** Falso enquanto um cadastro feito pela própria pessoa aguarda a aprovação do administrador. */
+    @Column(name = "approved", nullable = false)
+    private boolean approved;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -79,8 +83,24 @@ public class AppUser {
         user.role = role;
         user.active = true;
         user.mustChangePassword = mustChangePassword;
+        user.approved = true;
         user.createdAt = now;
         return user;
+    }
+
+    /**
+     * Cadastro feito pela própria pessoa: psicóloga, com a senha que ela escolheu (não precisa trocar),
+     * mas sem acesso até o administrador aprovar.
+     */
+    public static AppUser register(String email, String passwordHash, String displayName, Instant now) {
+        AppUser user = create(email, passwordHash, displayName, Role.PSYCHOLOGIST, false, now);
+        user.approved = false;
+        return user;
+    }
+
+    /** O administrador aprovou o cadastro: a conta passa a entrar. Aprovar de novo não muda nada. */
+    public void approve() {
+        this.approved = true;
     }
 
     /** Forma única do e-mail: sem espaços nas pontas e em minúsculas. Nulo vira texto vazio. */
@@ -91,6 +111,29 @@ public class AppUser {
     /** Conta desativada não entra mais; os dados continuam no banco. */
     public void deactivate() {
         this.active = false;
+    }
+
+    public void activate() {
+        this.active = true;
+    }
+
+    /** A própria pessoa trocou a senha: some a obrigação de trocar. */
+    public void changePassword(String newPasswordHash) {
+        this.passwordHash = requireHash(newPasswordHash);
+        this.mustChangePassword = false;
+    }
+
+    /** A administradora definiu uma senha provisória: a pessoa é obrigada a trocá-la no próximo acesso. */
+    public void resetPassword(String temporaryPasswordHash) {
+        this.passwordHash = requireHash(temporaryPasswordHash);
+        this.mustChangePassword = true;
+    }
+
+    private static String requireHash(String hash) {
+        if (hash == null || hash.isBlank()) {
+            throw new IllegalArgumentException("Hash de senha obrigatório.");
+        }
+        return hash;
     }
 
     public UUID id() {
@@ -119,6 +162,15 @@ public class AppUser {
 
     public boolean mustChangePassword() {
         return mustChangePassword;
+    }
+
+    public boolean isApproved() {
+        return approved;
+    }
+
+    /** Só entra quem está ativa e já foi aprovada. */
+    public boolean canLogIn() {
+        return active && approved;
     }
 
     public Instant createdAt() {

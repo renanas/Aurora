@@ -16,7 +16,9 @@ aurora:
     display-name: Aurora (dev)
 
 server:
-  address: 127.0.0.1   # só o Vite (proxy) fala com o Spring; nada de aceitar conexões da rede
+  #address: 127.0.0.1   # só o Vite (proxy) fala com o Spring; nada de aceitar conexões da rede
+  address: 0.0.0.0
+  port: 8080
   servlet:
     session:
       cookie:

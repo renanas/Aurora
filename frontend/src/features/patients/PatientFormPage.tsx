@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, useNavigate, useParams } from 'react-router'
-import { ApiError } from '../../shared/api/client'
+import { useQueryClient } from '@tanstack/react-query'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
+import { ApiError, api } from '../../shared/api/client'
 import { messageFor } from '../../shared/api/errors'
+import { parseDateString, weekdayFull } from '../../shared/lib/dates'
 import { countDigits, formatPhone, parsePrice, priceToInput } from '../../shared/lib/format'
 import {
   useActivatePatient,
@@ -12,12 +14,19 @@ import {
   useUpdatePatient,
   type PatientInput,
 } from './api'
+import { readInitialSchedule, type ScheduleFields } from './initialSchedule'
+import { RECURRENCE_KEY, type Recurrence } from './recurrence'
 import RecurrenceSection from './RecurrenceSection'
 
-interface FormValues {
+interface FormValues extends ScheduleFields {
   name: string
   whatsapp: string
   price: string
+}
+
+/** Aviso passado para a tela do paciente quando ele foi criado mas o horário não pôde ser salvo. */
+interface NavigationState {
+  notice?: string
 }
 
 const inputClass = 'w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-lg'
@@ -28,6 +37,9 @@ export default function PatientFormPage() {
   const { id } = useParams()
   const isEdit = id !== undefined
   const navigate = useNavigate()
+  const location = useLocation()
+  const queryClient = useQueryClient()
+  const notice = (location.state as NavigationState | null)?.notice ?? null
 
   const patientQuery = usePatient(id)
   const createPatient = useCreatePatient()
@@ -42,8 +54,12 @@ export default function PatientFormPage() {
     handleSubmit,
     reset,
     setError,
+    watch,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ defaultValues: { name: '', whatsapp: '', price: '' } })
+  } = useForm<FormValues>({
+    defaultValues: { name: '', whatsapp: '', price: '', anchorDate: '', startTime: '', frequency: 'WEEKLY' },
+  })
+  const chosenDate = parseDateString(watch('anchorDate') ?? '')
 
   const patient = patientQuery.data
   useEffect(() => {
@@ -52,6 +68,9 @@ export default function PatientFormPage() {
         name: patient.name,
         whatsapp: formatPhone(patient.whatsapp),
         price: priceToInput(patient.sessionPrice),
+        anchorDate: '',
+        startTime: '',
+        frequency: 'WEEKLY',
       })
     }
   }, [patient, reset])
@@ -65,18 +84,44 @@ export default function PatientFormPage() {
       return
     }
 
+    // O horário só existe no cadastro (na edição ele tem seção própria) e é opcional.
+    const schedule = isEdit ? ({ kind: 'none' } as const) : readInitialSchedule(values)
+    if (schedule.kind === 'invalid') {
+      setError(schedule.field, { message: schedule.message })
+      return
+    }
+
     const input: PatientInput = { name: values.name.trim(), whatsapp: values.whatsapp, sessionPrice: price }
 
+    let created: { id: string } | null = null
     try {
       if (isEdit) {
         await updatePatient.mutateAsync({ id, input })
       } else {
-        await createPatient.mutateAsync(input)
+        created = await createPatient.mutateAsync(input)
       }
-      navigate('/patients')
     } catch (error) {
       showServerError(error)
+      return
     }
+
+    if (created && schedule.kind === 'ok') {
+      try {
+        await api<Recurrence>(`/patients/${created.id}/recurrence`, { method: 'PUT', body: schedule.input })
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: RECURRENCE_KEY }),
+          queryClient.invalidateQueries({ queryKey: ['sessions'] }),
+        ])
+      } catch (error) {
+        // O paciente já existe: abre a tela dele, onde dá para tentar o horário de novo.
+        navigate(`/patients/${created.id}`, {
+          replace: true,
+          state: { notice: `Paciente salvo, mas o horário não: ${messageFor(error)} Defina o horário abaixo.` },
+        })
+        return
+      }
+    }
+    navigate('/patients')
   }
 
   function showServerError(error: unknown) {
@@ -135,6 +180,8 @@ export default function PatientFormPage() {
         )}
       </div>
 
+      {notice && <p className="rounded-lg bg-amber-50 p-4 text-amber-800">{notice}</p>}
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
         <div>
           <label htmlFor="name" className="mb-1 block text-base font-medium">
@@ -187,6 +234,42 @@ export default function PatientFormPage() {
           />
           {errors.price && <p className={errorClass}>{errors.price.message}</p>}
         </div>
+
+        {!isEdit && (
+          <fieldset className="space-y-4 rounded-lg border border-slate-200 bg-white p-4">
+            <legend className="px-1 text-lg font-semibold">Horário na agenda (opcional)</legend>
+            <p className="text-base text-slate-600">
+              Deixe em branco para definir depois. Com data e horário, as sessões já aparecem na agenda.
+            </p>
+
+            <div>
+              <label htmlFor="anchorDate" className="mb-1 block text-base font-medium">
+                Primeira sessão em
+              </label>
+              <input id="anchorDate" type="date" className={inputClass} {...register('anchorDate')} />
+              {chosenDate && <p className="mt-1 text-base text-slate-600">Cai em {weekdayFull(chosenDate)}.</p>}
+              {errors.anchorDate && <p className={errorClass}>{errors.anchorDate.message}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="startTime" className="mb-1 block text-base font-medium">
+                Horário
+              </label>
+              <input id="startTime" type="time" step={300} className={inputClass} {...register('startTime')} />
+              {errors.startTime && <p className={errorClass}>{errors.startTime.message}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="frequency" className="mb-1 block text-base font-medium">
+                Frequência
+              </label>
+              <select id="frequency" className={inputClass} {...register('frequency')}>
+                <option value="WEEKLY">Semanal</option>
+                <option value="BIWEEKLY">Quinzenal</option>
+              </select>
+            </div>
+          </fieldset>
+        )}
 
         {formError && <p className="rounded-lg bg-red-50 p-4 text-red-700">{formError}</p>}
 

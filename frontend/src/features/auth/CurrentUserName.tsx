@@ -1,9 +1,8 @@
-import { useQuery } from '@tanstack/react-query'
-import { AUTH_KEY, fetchMe } from './api'
+import { useMe } from './api'
 
 /** Nome de quem está logada, no cabeçalho. Lê a mesma consulta do AuthGate, sem pedir de novo. */
 export default function CurrentUserName() {
-  const { data } = useQuery({ queryKey: AUTH_KEY, queryFn: fetchMe, staleTime: Infinity })
+  const { data } = useMe()
   if (!data) return null
 
   return (

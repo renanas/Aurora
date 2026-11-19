@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query'
 import type { QueryClient } from '@tanstack/react-query'
 import { ApiError, api } from '../../shared/api/client'
 import { ensureCsrfToken } from '../../shared/api/csrf'
@@ -8,6 +9,8 @@ export interface Me {
   /** Nome para exibir no cabeçalho. */
   displayName: string
   role: 'ADMIN' | 'PSYCHOLOGIST'
+  /** Senha provisória pendente: só dá para trocar a senha até que isso mude. */
+  mustChangePassword: boolean
 }
 
 /** Chave do "quem está logado" no cache: null = sem sessão. */
@@ -23,6 +26,11 @@ export async function fetchMe(): Promise<Me | null> {
   }
 }
 
+/** Quem está logada, a partir do cache (a mesma consulta do AuthGate, sem pedir de novo). */
+export function useMe() {
+  return useQuery({ queryKey: AUTH_KEY, queryFn: fetchMe, staleTime: Infinity })
+}
+
 export async function login(username: string, password: string): Promise<void> {
   // Depois do "Sair" o cookie CSRF não existe mais; sem ele o servidor responderia 403.
   await ensureCsrfToken(
@@ -33,6 +41,26 @@ export async function login(username: string, password: string): Promise<void> {
     method: 'POST',
     body: new URLSearchParams({ username, password }),
   })
+}
+
+export interface Registration {
+  displayName: string
+  email: string
+  password: string
+}
+
+/** Cadastro público: a conta fica aguardando a aprovação do administrador. */
+export async function register(input: Registration): Promise<void> {
+  // Sem sessão o cookie CSRF pode não existir ainda; sem ele o servidor responderia 403.
+  await ensureCsrfToken(
+    () => document.cookie,
+    () => api<Me>('/auth/me'),
+  )
+  return api<void>('/auth/register', { method: 'POST', body: input })
+}
+
+export function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  return api<void>('/auth/password', { method: 'POST', body: { currentPassword, newPassword } })
 }
 
 export function logout(): Promise<void> {

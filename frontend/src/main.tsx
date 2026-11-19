@@ -4,13 +4,17 @@ import { BrowserRouter } from 'react-router'
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import App from './App'
-import { dropSession } from './features/auth/api'
+import { AUTH_KEY, dropSession } from './features/auth/api'
 import { ApiError } from './shared/api/client'
 
 /** Sessão vencida em qualquer chamada: apaga os dados da tela e volta para o login. */
 function handleError(client: QueryClient, error: Error) {
   if (error instanceof ApiError && error.status === 401 && error.code === 'UNAUTHENTICATED') {
     dropSession(client)
+  }
+  // A senha foi redefinida enquanto a tela estava aberta: reconfere quem sou eu e mostra a troca obrigatória.
+  if (error instanceof ApiError && error.status === 403 && error.code === 'PASSWORD_CHANGE_REQUIRED') {
+    void client.invalidateQueries({ queryKey: AUTH_KEY })
   }
 }
 

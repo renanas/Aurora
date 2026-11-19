@@ -23,6 +23,16 @@ const MESSAGES: Record<string, string> = {
   UNDO_RESCHEDULE_NOT_ALLOWED: 'Só dá para desfazer o reagendamento enquanto a nova sessão ainda está agendada.',
   REOPEN_NOT_ALLOWED: 'Só é possível reabrir uma sessão realizada, cancelada ou com falta.',
   INVALID_DATE_TIME: 'Essa data não existe no calendário.',
+  PASSWORD_CHANGE_REQUIRED: 'Troque a senha provisória para continuar.',
+  PASSWORD_TOO_SHORT: 'A senha deve ter pelo menos 12 caracteres.',
+  PASSWORD_TOO_LONG: 'A senha é longa demais (acentos e emojis contam mais de um caractere).',
+  WRONG_CURRENT_PASSWORD: 'A senha atual está incorreta.',
+  SAME_PASSWORD: 'A nova senha deve ser diferente da atual.',
+  TOO_MANY_PENDING_REGISTRATIONS: 'Há muitos cadastros aguardando aprovação. Tente de novo mais tarde.',
+  ACCOUNT_NOT_PENDING: 'Esta conta já foi aprovada. Para tirar o acesso, desative-a.',
+  INVALID_ACCOUNT_DATA: 'Confira o nome e o e-mail informados.',
+  CANNOT_MODIFY_OWN_ACCOUNT: 'Você não pode desativar nem redefinir a senha da sua própria conta por aqui.',
+  NOT_ALLOWED: 'Você não tem permissão para fazer isso.',
 }
 
 export function messageFor(error: unknown): string {
