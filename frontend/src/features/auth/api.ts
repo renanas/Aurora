@@ -59,6 +59,16 @@ export async function register(input: Registration): Promise<void> {
   return api<void>('/auth/register', { method: 'POST', body: input })
 }
 
+/** Troca o próprio nome; o servidor devolve o "quem sou eu" atualizado. */
+export function changeName(displayName: string): Promise<Me> {
+  return api<Me>('/auth/profile', { method: 'PUT', body: { displayName } })
+}
+
+/** Troca o próprio e-mail (o login). Pede a senha atual. */
+export function changeEmail(email: string, currentPassword: string): Promise<Me> {
+  return api<Me>('/auth/email', { method: 'PUT', body: { email, currentPassword } })
+}
+
 export function changePassword(currentPassword: string, newPassword: string): Promise<void> {
   return api<void>('/auth/password', { method: 'POST', body: { currentPassword, newPassword } })
 }

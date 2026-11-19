@@ -161,4 +161,19 @@ class AppUserTest {
         assertThatThrownBy(() -> AppUser.register("bia@aurora.test", "hash", "  ", NOW))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    @DisplayName("trocar o nome e o e-mail valida e normaliza como na criação")
+    void renameAndChangeEmail() {
+        AppUser user = ana();
+
+        user.rename("  Ana Souza ");
+        user.changeEmail(" Ana.Souza@Aurora.TEST ");
+
+        assertThat(user.displayName()).isEqualTo("Ana Souza");
+        assertThat(user.email()).isEqualTo("ana.souza@aurora.test");
+        assertThatThrownBy(() -> user.rename(" ")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> user.changeEmail("sem-arroba")).isInstanceOf(IllegalArgumentException.class);
+        assertThat(user.email()).isEqualTo("ana.souza@aurora.test");
+    }
 }

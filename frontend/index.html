@@ -4,6 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Aurora</title>
+    <script>
+      // Aplica o tema escolhido antes de desenhar a página (sem piscar em branco no modo escuro).
+      // Mesma regra de src/shared/lib/theme.ts.
+      try {
+        var themeChoice = localStorage.getItem('aurora-theme')
+        var devicePrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (themeChoice === 'dark' || (themeChoice === 'system' && devicePrefersDark)) {
+          document.documentElement.classList.add('dark')
+        }
+      } catch (ignored) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

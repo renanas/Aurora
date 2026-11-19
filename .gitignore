@@ -9,3 +9,4 @@ node_modules/
 # Modo casa: senhas geradas na primeira execução e cópias do banco (dados reais de pacientes)
 .env.casa
 backups/
+.casa/

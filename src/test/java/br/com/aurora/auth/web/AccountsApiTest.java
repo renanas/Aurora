@@ -3,6 +3,7 @@ package br.com.aurora.auth.web;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -122,6 +123,16 @@ class AccountsApiTest {
 
     private static String registerJson(String name, String email, String password) {
         return "{\"displayName\":\"" + name + "\",\"email\":\"" + email + "\",\"password\":\"" + password + "\"}";
+    }
+
+    private ResultActions putJson(MockHttpSession session, String token, String url, String json) throws Exception {
+        return mvc.perform(put(url).session(session)
+                .cookie(new Cookie("XSRF-TOKEN", token)).header("X-XSRF-TOKEN", token)
+                .contentType(MediaType.APPLICATION_JSON).content(json));
+    }
+
+    private static String emailJson(String email, String currentPassword) {
+        return "{\"email\":\"" + email + "\",\"currentPassword\":\"" + currentPassword + "\"}";
     }
 
     private static String passwordJson(String password) {
@@ -375,6 +386,65 @@ class AccountsApiTest {
         MockHttpSession ana = sessionFor("ana@aurora.test", TEMP, token);
 
         postJson(ana, token, "/api/auth/logout", "{}").andExpect(status().isNoContent());
+    }
+
+    // ---------- trocar o próprio nome e e-mail ----------
+
+    @Test
+    @DisplayName("a pessoa troca o próprio nome e o /me já devolve o nome novo")
+    void userChangesOwnName() throws Exception {
+        createPsychologist("ana@aurora.test", "senha-da-ana-123", false);
+        String token = csrfToken();
+        MockHttpSession ana = sessionFor("ana@aurora.test", "senha-da-ana-123", token);
+
+        putJson(ana, token, "/api/auth/profile", "{\"displayName\":\"  Dra. Ana Souza  \"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.displayName").value("Dra. Ana Souza"));
+        mvc.perform(get("/api/auth/me").session(ana))
+                .andExpect(jsonPath("$.displayName").value("Dra. Ana Souza"));
+
+        putJson(ana, token, "/api/auth/profile", "{\"displayName\":\"   \"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    @DisplayName("a pessoa troca o próprio e-mail com a senha atual e passa a entrar com o novo")
+    void userChangesOwnEmail() throws Exception {
+        createPsychologist("ana@aurora.test", "senha-da-ana-123", false);
+        String token = csrfToken();
+        MockHttpSession ana = sessionFor("ana@aurora.test", "senha-da-ana-123", token);
+
+        putJson(ana, token, "/api/auth/email", emailJson(" Ana.Nova@Aurora.Test ", "senha-da-ana-123"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("ana.nova@aurora.test"));
+
+        mvc.perform(get("/api/auth/me").session(ana))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("ana.nova@aurora.test"));
+        login("ana@aurora.test", "senha-da-ana-123", token).andExpect(status().isUnauthorized());
+        login("ana.nova@aurora.test", "senha-da-ana-123", token).andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("trocar o e-mail: senha errada, e-mail de outra conta ou inválido são recusados")
+    void changeEmailIsValidated() throws Exception {
+        createPsychologist("ana@aurora.test", "senha-da-ana-123", false);
+        createPsychologist("bia@aurora.test", "senha-da-bia-123", false);
+        String token = csrfToken();
+        MockHttpSession ana = sessionFor("ana@aurora.test", "senha-da-ana-123", token);
+
+        putJson(ana, token, "/api/auth/email", emailJson("ana2@aurora.test", "senha-errada-123"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("WRONG_CURRENT_PASSWORD"));
+        putJson(ana, token, "/api/auth/email", emailJson(" BIA@aurora.test", "senha-da-ana-123"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("EMAIL_ALREADY_REGISTERED"));
+        putJson(ana, token, "/api/auth/email", emailJson("sem-arroba", "senha-da-ana-123"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("INVALID_ACCOUNT_DATA"));
+
+        assertThat(users.findByEmail("ana@aurora.test")).isPresent();
     }
 
     // ---------- desativar, ativar e redefinir ----------
